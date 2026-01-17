@@ -1,491 +1,646 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Web CS: Dust II (Final Fix)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSC 星空特訓 (港區專用)</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; user-select: none; background-color: #000; }
+        /* ==================== 
+           1. 護眼星空配色 (Dark Mode)
+           ==================== */
+        :root {
+            --bg-color: #0f1319;       /* 深空藍黑 */
+            --card-bg: rgba(23, 32, 42, 0.9); /* 半透明深色卡片 */
+            --text-primary: #ecf0f1;   /* 柔和白 */
+            --text-secondary: #bdc3c7; /* 淺灰 */
+            --accent-color: #e74c3c;   /* 錯誤紅 (柔和版) */
+            --success-color: #2ecc71;  /* 正確綠 (柔和版) */
+            --btn-bg: #34495e;         /* 選項按鈕底色 */
+            --btn-hover: #4ba3c7;      /* 懸停色 */
+            --btn-next: #d35400;       /* 下一題按鈕 (橙色) */
+        }
+
+        body {
+            font-family: "Microsoft YaHei", "Heiti TC", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden; /* 防止捲動 */
+        }
+
+        /* 背景星空畫布 */
+        #star-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        .container {
+            background-color: var(--card-bg);
+            backdrop-filter: blur(10px); /* 毛玻璃特效 */
+            border-radius: 16px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5); /* 發光感陰影 */
+            width: 90%;
+            max-width: 600px;
+            padding: 40px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* 進度條 */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #2c3e50;
+            border-radius: 3px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: #f1c40f; /* 金色進度 */
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* 題目大字 */
+        .word-display {
+            font-size: 90px;
+            font-weight: bold;
+            margin: 10px 0 30px 0;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            letter-spacing: 5px;
+        }
+
+        /* 選項網格 */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        button.option-btn {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px solid #576574;
+            color: var(--text-primary);
+            border-radius: 12px;
+            padding: 20px;
+            font-size: 24px; /* 拼音大一點 */
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: Arial, sans-serif;
+        }
+
+        button.option-btn:hover:not(:disabled) {
+            border-color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        /* 正確錯誤樣式 */
+        button.option-btn.correct {
+            background-color: var(--success-color);
+            border-color: var(--success-color);
+            color: white;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+        }
+
+        button.option-btn.wrong {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+            opacity: 0.6;
+        }
+
+        /* 反饋區域 */
+        .feedback-area {
+            min-height: 80px;
+            margin-top: 15px;
+            font-size: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .feedback-note {
+            color: #81a1c1; /* 柔和藍 */
+            font-size: 16px;
+            margin-top: 8px;
+            display: block;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 15px;
+            border-radius: 8px;
+            line-height: 1.5;
+        }
+
+        /* 下一題按鈕 */
+        .btn-next-q {
+            background-color: var(--btn-next);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            margin-top: 10px;
+            display: none; /* 默認隱藏 */
+            box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4);
+            animation: popIn 0.3s ease;
+        }
         
-        /* UI 層 */
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        
-        /* 準心 */
-        #crosshair { 
-            position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; 
-            transform: translate(-50%, -50%); pointer-events: none;
+        .btn-next-q:hover {
+            background-color: #e67e22;
         }
-        .crosshair-line { position: absolute; background: #0f0; }
-        .h-line { width: 100%; height: 2px; top: 9px; }
-        .v-line { height: 100%; width: 2px; left: 9px; }
-        
-        /* HUD */
-        #hud {
-            position: absolute; bottom: 20px; left: 20px; color: white; 
-            font-size: 24px; text-shadow: 2px 2px 0 #000; display: flex; gap: 20px;
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
-        .hud-item { background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 5px; }
-        
-        /* 購買菜單 */
-        #buy-menu {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9); color: white; padding: 20px;
-            border: 2px solid #eda50e; display: none; pointer-events: auto;
-            width: 300px; z-index: 10;
+
+        /* 結算畫面 */
+        .result-screen {
+            display: none;
         }
-        #buy-menu h2 { margin-top: 0; color: #eda50e; text-align: center; }
-        .buy-item {
-            padding: 10px; margin: 5px 0; background: #333; cursor: pointer;
-            display: flex; justify-content: space-between; border: 1px solid #444;
+
+        .score-circle {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            border: 6px solid var(--success-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            font-weight: bold;
+            margin: 0 auto 30px;
+            color: var(--text-primary);
+            box-shadow: 0 0 30px rgba(46, 204, 113, 0.2);
         }
-        .buy-item:hover { background: #555; border-color: #eda50e; }
-        
-        /* 遮罩層與按鈕 */
-        #blocker {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.7); z-index: 5;
-            display: flex; justify-content: center; align-items: center;
-            pointer-events: auto;
+
+        /* 回顧列表 */
+        .review-list {
+            text-align: left;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            padding-right: 10px;
+            border-top: 1px solid #34495e;
         }
-        #instructions {
-            color: white; text-align: center; background: rgba(0,0,0,0.8); padding: 40px;
-            border-radius: 10px; border: 1px solid white;
+
+        .review-item {
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 16px;
         }
-        #start-btn {
-            background-color: #eda50e; color: black; border: none; padding: 15px 30px;
-            font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 20px;
-            border-radius: 5px;
+
+        /* 捲軸美化 */
+        .review-list::-webkit-scrollbar { width: 6px; }
+        .review-list::-webkit-scrollbar-thumb { background: #576574; border-radius: 3px; }
+
+        .btn-restart {
+            background-color: #2980b9;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            cursor: pointer;
         }
-        #start-btn:hover { background-color: #ffc107; }
-        
-        #kill-feed {
-            position: absolute; top: 20px; right: 20px; text-align: right;
-            color: white; font-size: 14px; text-shadow: 1px 1px 0 #000;
-        }
-        .kill-msg { margin-bottom: 5px; padding: 2px 5px; background: rgba(0,0,0,0.3); }
+
     </style>
-    
-    <!-- 引入 Three.js r128 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- 引入 PointerLockControls -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
 </head>
 <body>
 
-    <div id="ui-layer">
-        <div id="crosshair">
-            <div class="crosshair-line h-line"></div>
-            <div class="crosshair-line v-line"></div>
-        </div>
+<canvas id="star-canvas"></canvas>
+
+<div class="container">
+    <div id="game-screen">
+        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 10px;">PSC 難字特訓 | 20 題</div>
         
-        <div id="hud">
-            <div class="hud-item">❤️ <span id="health">100</span></div>
-            <div class="hud-item">🛡️ <span id="armor">0</span></div>
-            <div class="hud-item">🔫 <span id="ammo">20/60</span></div>
-            <div class="hud-item">💰 $<span id="money">800</span></div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
         </div>
 
-        <div id="kill-feed"></div>
-    </div>
+        <div class="word-display" id="question-word">載入中</div>
 
-    <div id="buy-menu">
-        <h2>購買菜單 (B)</h2>
-        <div class="buy-item" onclick="buyWeapon('ak47', 2700)"><span>AK-47</span><span>$2700</span></div>
-        <div class="buy-item" onclick="buyWeapon('m4a1', 3100)"><span>M4A1</span><span>$3100</span></div>
-        <div class="buy-item" onclick="buyWeapon('awp', 4750)"><span>AWP</span><span>$4750</span></div>
-        <div class="buy-item" onclick="buyArmor()"><span>防彈衣</span><span>$650</span></div>
-        <div style="text-align: center; margin-top: 10px; font-size: 12px; color: #aaa;">點擊購買，按 B 關閉</div>
-    </div>
+        <div class="options-grid" id="options-container">
+            </div>
 
-    <div id="blocker">
-        <div id="instructions">
-            <h1 style="margin-top:0">CS: Web Dust II</h1>
-            <p>WASD 移動 | 空白鍵 跳躍 | 滑鼠 射擊</p>
-            <p>R 換彈 | B 購買菜單</p>
-            <!-- 明確的開始按鈕 -->
-            <button id="start-btn">點擊開始遊戲</button>
+        <div class="feedback-area" id="feedback-box">
+            <div id="feedback-text"></div>
+            <button class="btn-next-q" id="next-btn" onclick="nextQuestion()">👉 下一題</button>
         </div>
     </div>
 
-    <script>
-        let camera, scene, renderer, controls;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let canJump = false;
-        let prevTime = performance.now();
-        const velocity = new THREE.Vector3();
-        const direction = new THREE.Vector3();
+    <div id="result-screen" class="result-screen">
+        <h1 style="color:#fff;">特訓結束</h1>
+        <div class="score-circle" id="final-score">0</div>
+        <p id="eval-text" style="color:#bdc3c7; margin-bottom: 20px;">...</p>
         
-        let health = 100;
-        let money = 800;
-        let ammo = 20;
-        let totalAmmo = 60;
-        let currentWeapon = 'glock';
-        let isBuyMenuOpen = false;
+        <div style="text-align:left; color:#f1c40f; font-size:14px;">📝 重點回顧：</div>
+        <div class="review-list" id="review-container">
+            </div>
+
+        <button class="btn-restart" onclick="initGame()">再來一局 🔄</button>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+// ==========================================
+    // 1. 題庫 (由 20 題擴充至 120 題)
+    // ==========================================
+    const fullQuestionBank = [
+        // --- 聲母/韻母易錯 (n/l, h/f, j/q/x) ---
+        { word: "酗", pinyin: "xù", options: ["xiōng", "xī", "chè"], note: "勿讀 '凶'，常詞：酗酒。" },
+        { word: "詣", pinyin: "yì", options: ["zhǐ", "yí", "jì"], note: "勿讀 '旨'，常詞：造詣。" },
+        { word: "愎", pinyin: "bì", options: ["fù", "bèi", "pì"], note: "勿讀 '復'，常詞：剛愎自用。" },
+        { word: "溯", pinyin: "sù", options: ["shuò", "suò", "sū"], note: "勿讀 '朔'，常詞：追溯。" },
+        { word: "殫", pinyin: "dān", options: ["tán", "chàn", "dàn"], note: "勿讀 '彈'，常詞：殫精竭慮。" },
+        { word: "紕", pinyin: "pī", options: ["bǐ", "pí", "bì"], note: "勿讀 '比'，常詞：紕漏。" },
+        { word: "剽", pinyin: "piāo", options: ["piào", "biāo", "piao"], note: "一聲！勿讀四聲，常詞：剽竊。" },
+        { word: "謁", pinyin: "yè", options: ["jié", "yì", "hè"], note: "勿讀 '傑'，常詞：拜謁。" },
+        { word: "躋", pinyin: "jī", options: ["jǐ", "qí", "jì"], note: "一聲！勿讀三聲或 '齊'，常詞：躋身。" },
+        { word: "畸", pinyin: "jī", options: ["qí", "yǐ", "kē"], note: "勿讀 '奇'，常詞：畸形。" },
+        { word: "浸", pinyin: "jìn", options: ["qīn", "jīn", "qìn"], note: "勿讀 '侵'，常詞：沉浸。" },
+        { word: "哺", pinyin: "bǔ", options: ["pǔ", "fǔ", "bù"], note: "勿讀 '普'，常詞：哺乳。" },
+        { word: "糙", pinyin: "cāo", options: ["zào", "cào", "zhào"], note: "勿讀 '造'，常詞：粗糙。" },
+        { word: "疵", pinyin: "cī", options: ["chī", "cì", "bì"], note: "勿讀 '吃'，常詞：瑕疵。" },
+        { word: "挫", pinyin: "cuò", options: ["cuō", "zuò", "cù"], note: "四聲！勿讀一聲，常詞：挫折。" },
+        { word: "悼", pinyin: "dào", options: ["diào", "dǎo", "zhuó"], note: "勿讀 '掉'，常詞：追悼。" },
+        { word: "堤", pinyin: "dī", options: ["tí", "dì", "tī"], note: "勿讀 '提'，常詞：堤壩。" },
+        { word: "玷", pinyin: "diàn", options: ["zhān", "diǎn", "tiē"], note: "勿讀 '沾'，常詞：玷污。" },
+        { word: "扉", pinyin: "fēi", options: ["fěi", "pái", "fèi"], note: "一聲！勿讀三聲，常詞：心扉。" },
+        { word: "否", pinyin: "pǐ", options: ["fǒu", "bì", "pī"], note: "多音字：否(pǐ)極泰來。" },
+        { word: "蛤", pinyin: "gé", options: ["há", "gě", "jiá"], note: "蛤(gé)蜊，蛤(há)蟆。" },
+        { word: "亙", pinyin: "gèn", options: ["héng", "gèng", "huán"], note: "勿讀 '恆'，常詞：亙古。" },
+        { word: "肱", pinyin: "gōng", options: ["hóng", "góng", "qiáng"], note: "勿讀 '宏'，常詞：股肱。" },
+        { word: "檜", pinyin: "guì", options: ["huì", "kuài", "huài"], note: "秦檜(huì)，市檜(kuài)已被廢除。" },
+        { word: "涸", pinyin: "hé", options: ["gù", "hè", "kū"], note: "勿讀 '固'，常詞：乾涸。" },
+        { word: "酵", pinyin: "jiào", options: ["xiào", "xiāo", "jiāo"], note: "必考！勿讀 '孝'，常詞：發酵。" },
+        { word: "角", pinyin: "jué", options: ["jiǎo", "jú", "jià"], note: "角(jué)色，勿讀 jiǎo。" },
+        { word: "倔", pinyin: "jué", options: ["juè", "qū", "juě"], note: "倔(jué)強。" },
+        { word: "框", pinyin: "kuàng", options: ["kuāng", "guāng", "kāng"], note: "四聲！勿讀一聲。" },
+        { word: "咯", pinyin: "kǎ", options: ["luò", "gē", "lo"], note: "咯(kǎ)血，勿讀 luò。" },
+        { word: "掄", pinyin: "lūn", options: ["lún", "lùn", "qiǎng"], note: "一聲！常詞：掄拳頭。" },
+        { word: "絡", pinyin: "luò", options: ["lào", "gè", "lè"], note: "絡(luò)繹不絕，大大咧咧(liē)。" },
+        { word: "拈", pinyin: "niān", options: ["zhān", "niǎn", "diān"], note: "勿讀 '沾'，常詞：拈輕怕重。" },
+        { word: "膿", pinyin: "nóng", options: ["nōng", "lóng", "nùng"], note: "二聲！勿讀一聲。" },
+        { word: "癖", pinyin: "pǐ", options: ["pì", "bì", "pí"], note: "三聲！勿讀 '僻'，常詞：潔癖。" },
+        { word: "企", pinyin: "qǐ", options: ["qì", "qí", "jì"], note: "三聲！廣東人常誤讀四聲。" },
+        { word: "潛", pinyin: "qián", options: ["qiǎn", "jiān", "zàn"], note: "二聲！勿讀三聲，常詞：潛水。" },
+        { word: "怯", pinyin: "qiè", options: ["què", "qù", "xiè"], note: "勿讀 '卻'，常詞：膽怯。" },
+        { word: "冗", pinyin: "rǒng", options: ["yǒng", "ròng", "kàng"], note: "勿讀 '永'，常詞：冗長。" },
+        { word: "蜃", pinyin: "shèn", options: ["chún", "shén", "zhèn"], note: "勿讀 '唇'，常詞：海市蜃樓。" },
+        { word: "狩", pinyin: "shòu", options: ["shǒu", "shú", "jué"], note: "勿讀 '守'，常詞：狩獵。" },
+        { word: "韜", pinyin: "tāo", options: ["tào", "dào", "yáo"], note: "一聲！勿讀四聲，常詞：韜光養晦。" },
+        { word: "殄", pinyin: "tiǎn", options: ["zhēn", "tiān", "cǎn"], note: "勿讀 '珍'，常詞：暴殄天物。" },
+        { word: "臀", pinyin: "tún", options: ["diàn", "tūn", "yì"], note: "勿讀 '殿'，常詞：臀部。" },
+        { word: "韋", pinyin: "wéi", options: ["wěi", "huì", "wēi"], note: "二聲！勿讀三聲，姓氏。" },
+        { word: "膝", pinyin: "xī", options: ["qī", "xí", "yì"], note: "勿讀 '七'，常詞：膝蓋。" },
+        { word: "檄", pinyin: "xí", options: ["jiǎo", "jī", "ào"], note: "勿讀 '繳'，常詞：檄文。" },
+        { word: "弦", pinyin: "xián", options: ["xuán", "xiàn", "rán"], note: "勿讀 '玄'，常詞：琴弦。" },
+        { word: "涎", pinyin: "xián", options: ["yán", "xiàn", "dàn"], note: "勿讀 '延'，常詞：垂涎三尺。" },
+        { word: "穴", pinyin: "xué", options: ["xuè", "xuě", "kōng"], note: "二聲！勿讀四聲。" },
+        { word: "亞", pinyin: "yà", options: ["yǎ", "à", "yā"], note: "四聲！廣東人常誤讀三聲，亞洲。" },
+        { word: "友", pinyin: "yǒu", options: ["yóu", "yòu", "liǔ"], note: "三聲！注意上上相連變調規則。" },
+        { word: "咱", pinyin: "zán", options: ["zá", "zā", "zhán"], note: "二聲！咱們。" },
+        { word: "綻", pinyin: "zhàn", options: ["dìng", "dian", "zhān"], note: "勿讀 '定'，常詞：破綻。" },
+        { word: "脂", pinyin: "zhī", options: ["zhǐ", "zī", "zhì"], note: "一聲！勿讀三聲，常詞：脂肪。" },
+        { word: "擲", pinyin: "zhì", options: ["zhèng", "zhī", "tí"], note: "勿讀 '鄭'，常詞：擲地有聲。" },
+        { word: "貯", pinyin: "zhù", options: ["chǔ", "zhǔ", "níng"], note: "四聲！勿讀三聲，常詞：貯存。" },
+        { word: "卓", pinyin: "zhuó", options: ["zhuō", "zhào", "chuo"], note: "二聲！勿讀一聲，常詞：卓越。" },
+        { word: "綜", pinyin: "zōng", options: ["zòng", "cōng", "zhōng"], note: "一聲！勿讀四聲，常詞：綜合。" },
         
-        const bots = [];
-        const obstacles = [];
-        
-        const weapons = {
-            'glock': { damage: 15, fireRate: 200, magSize: 20, color: 0x555555 },
-            'ak47': { damage: 35, fireRate: 100, magSize: 30, color: 0x8B4513 },
-            'm4a1': { damage: 30, fireRate: 90, magSize: 30, color: 0x333333 },
-            'awp': { damage: 100, fireRate: 1200, magSize: 10, color: 0x228B22 }
-        };
-        let lastShotTime = 0;
-        let gunMesh;
+        // --- 擴充部分：港人特訓 ---
+        { word: "檔", pinyin: "dàng", options: ["dǎng", "dāng", "tóng"], note: "四聲！檔案(dàng àn)，勿讀 dǎng。" },
+        { word: "鍥", pinyin: "qiè", options: ["qì", "xiè", "kè"], note: "勿讀 '氣'，常詞：鍥而不捨。" },
+        { word: "愎", pinyin: "bì", options: ["fù", "bèi", "pì"], note: "四聲！剛愎(bì)自用。" },
+        { word: "葩", pinyin: "pā", options: ["bā", "pá", "pà"], note: "一聲！常詞：奇葩。" },
+        { word: "捕", pinyin: "bǔ", options: ["pǔ", "fǔ", "bù"], note: "聲母是 b！逮捕、捕捉。" },
+        { word: "髓", pinyin: "suǐ", options: ["suí", "suì", "shuǐ"], note: "三聲！骨髓，勿讀 suí。" },
+        { word: "質", pinyin: "zhì", options: ["zhǐ", "zī", "jí"], note: "翹舌音 zh！質量，勿讀 zī 或 jí。" },
+        { word: "暫", pinyin: "zàn", options: ["zhàn", "zán", "chàn"], note: "四聲平舌！暫時，勿讀 zhàn。" },
+        { word: "懲", pinyin: "chéng", options: ["chěng", "zhěng", "chèng"], note: "二聲！懲罰，勿讀三聲。" },
+        { word: "氛", pinyin: "fēn", options: ["fèn", "fēng", "pēn"], note: "一聲！氣氛，勿讀 fèn。" },
+        { word: "嫉", pinyin: "jí", options: ["jì", "hóu", "qì"], note: "二聲！嫉妒，勿讀 jì。" },
+        { word: "棘", pinyin: "jí", options: ["là", "cì", "shù"], note: "二聲！棘手，勿讀 '辣'。" },
+        { word: "糾", pinyin: "jiū", options: ["jiǎo", "jiù", "gōu"], note: "勿讀 jiǎo！常詞：糾正。" },
+        { word: "殲", pinyin: "jiān", options: ["qiān", "xiān", "liàn"], note: "勿讀 '千'，常詞：殲滅。" },
+        { word: "酵", pinyin: "jiào", options: ["xiào", "xiāo", "gāo"], note: "必考！發酵，勿讀 '孝'。" },
+        { word: "矩", pinyin: "jǔ", options: ["jù", "qū", "kè"], note: "三聲！規矩，勿讀 '巨'。" },
+        { word: "菌", pinyin: "jūn", options: ["jùn", "qūn", "yún"], note: "一聲！細菌，(jùn用於菌子-蘑菇)。" },
+        { word: "闞", pinyin: "kàn", options: ["hǎn", "gǎn", "xiàn"], note: "四聲！姓氏：闞。" },
+        { word: "恪", pinyin: "kè", options: ["gè", "què", "kà"], note: "勿讀 '各'，常詞：恪守。" },
+        { word: "框", pinyin: "kuàng", options: ["kuāng", "kāng", "guāng"], note: "四聲！門框。" },
+        { word: "況", pinyin: "kuàng", options: ["guàng", "huàng", "kàng"], note: "聲母 k！況且。" },
+        { word: "拉", pinyin: "lā", options: ["lá", "lǎ", "lè"], note: "拉(lā)圾(jī)！台灣讀 lè sè，大陸讀 lā jī。" },
+        { word: "掠", pinyin: "lüè", options: ["luè", "liè", "lue"], note: "有兩點！掠奪。" },
+        { word: "攣", pinyin: "luán", options: ["liàn", "luàn", "wān"], note: "痙攣，勿讀 '戀'。" },
+        { word: "掄", pinyin: "lūn", options: ["lún", "lùn", "qiǎng"], note: "一聲！掄起。" },
+        { word: "埋", pinyin: "mán", options: ["mái", "lí", "ái"], note: "埋(mán)怨，埋(mái)葬。多音字。" },
+        { word: "秘", pinyin: "bì", options: ["mì", "bèi", "pì"], note: "秘(bì)魯，秘密(mì)。" },
+        { word: "娩", pinyin: "miǎn", options: ["wǎn", "miàn", "màn"], note: "分娩，勿讀 '晚'。" },
+        { word: "謬", pinyin: "miù", options: ["miào", "liù", "móu"], note: "荒謬，勿讀 '妙'。" },
+        { word: "膜", pinyin: "mó", options: ["mé", "mò", "mú"], note: "薄膜，二聲。" },
+        { word: "謀", pinyin: "móu", options: ["mǒu", "méi", "mò"], note: "謀求，勿讀 '某'。" },
+        { word: "難", pinyin: "nàn", options: ["nán", "nuò", "luàn"], note: "災難(nàn)，困難(nán)。" },
+        { word: "濘", pinyin: "nìng", options: ["níng", "nīng", "lìng"], note: "泥濘，四聲。" },
+        { word: "瘧", pinyin: "nüè", options: ["yào", "niè", "xuè"], note: "瘧疾，勿讀 yào。" },
+        { word: "葩", pinyin: "pā", options: ["bā", "pá", "pà"], note: "奇葩，一聲。" },
+        { word: "胖", pinyin: "pán", options: ["pàng", "bàn", "piàn"], note: "心寬體胖(pán)，肥胖(pàng)。" },
+        { word: "炮", pinyin: "páo", options: ["pào", "bāo", "pāo"], note: "炮(páo)製，大炮(pào)。" },
+        { word: "胚", pinyin: "pēi", options: ["pī", "péi", "bēi"], note: "胚胎，一聲，勿讀 pī。" },
+        { word: "匹", pinyin: "pǐ", options: ["pī", "bǐ", "yà"], note: "匹配，三聲。" },
+        { word: "扁", pinyin: "piān", options: ["biǎn", "piàn", "biān"], note: "一葉扁(piān)舟，扁(biǎn)平。" },
+        { word: "縹", pinyin: "piǎo", options: ["piāo", "piào", "biāo"], note: "縹緲，三聲。" },
+        { word: "瞥", pinyin: "piē", options: ["piě", "biē", "pié"], note: "瞥見，一聲。" },
+        { word: "泊", pinyin: "pō", options: ["bó", "pò", "bái"], note: "湖泊(pō)，停泊(bó)。" },
+        { word: "朴", pinyin: "piáo", options: ["pǔ", "pò", "bǔ"], note: "姓氏：朴(piáo)，樸素(pǔ)。" },
+        { word: "曝", pinyin: "pù", options: ["bào", "pò", "bú"], note: "一曝十寒，勿讀 bào。" },
+        { word: "棲", pinyin: "qī", options: ["xī", "qì", "jī"], note: "兩棲，勿讀 xī。" },
+        { word: "蹊", pinyin: "qī", options: ["xī", "qì", "jī"], note: "蹊蹺，勿讀 xī。" },
+        { word: "稽", pinyin: "qǐ", options: ["jī", "jiē", "kè"], note: "稽(qǐ)首，滑稽(jī)。" },
+        { word: "蕁", pinyin: "qián", options: ["xún", "tán", "yún"], note: "蕁(qián)麻疹，勿讀 xún。" },
+        { word: "強", pinyin: "qiǎng", options: ["qiáng", "jiàng", "gāng"], note: "強(qiǎng)迫，堅強(qiáng)。" },
+        { word: "翹", pinyin: "qiáo", options: ["qiào", "yáo", "jiào"], note: "翹(qiáo)首，翹(qiào)尾巴。" },
+        { word: "怯", pinyin: "qiè", options: ["què", "qù", "xiè"], note: "膽怯，勿讀 '卻'。" },
+        { word: "挈", pinyin: "qiè", options: ["qì", "bá", "xié"], note: "提挈，四聲。" },
+        { word: "親", pinyin: "qìng", options: ["qīn", "qíng", "xīn"], note: "親(qìng)家，親(qīn)熱。" },
+        { word: "曲", pinyin: "qū", options: ["qǔ", "quē", "gū"], note: "曲(qū)折，歌曲(qǔ)。" },
+        { word: "券", pinyin: "quàn", options: ["juàn", "quān", "xuàn"], note: "證券，勿讀 juàn。" },
+        { word: "冉", pinyin: "rǎn", options: ["zài", "yǎn", "dān"], note: "冉冉升起，勿讀 zài。" },
+        { word: "塞", pinyin: "sè", options: ["sāi", "sài", "zè"], note: "堵塞(sè)，塞(sāi)車，邊塞(sài)。" },
+        { word: "刹", pinyin: "chà", options: ["shā", "shà", "cā"], note: "古刹(chà)，刹(shā)車。" },
+        { word: "禪", pinyin: "shàn", options: ["chán", "zhàn", "dān"], note: "禪(shàn)讓，禪(chán)宗。" },
+        { word: "折", pinyin: "shé", options: ["zhé", "zhē", "xié"], note: "折(shé)本，折(zhé)磨。" },
+        { word: "說", pinyin: "shuì", options: ["shuō", "yuè", "tuō"], note: "遊說(shuì)，說(shuō)話。" },
+        { word: "吮", pinyin: "shǔn", options: ["yǔn", "shùn", "cǔn"], note: "吮吸，勿讀 yǔn。" },
+        { word: "遂", pinyin: "suí", options: ["suì", "shuǐ", "zhú"], note: "半身不遂(suí)，遂(suì)願。" },
+        { word: "苔", pinyin: "tāi", options: ["tái", "dài", "tài"], note: "舌苔(tāi)，苔(tái)蘚。" },
+        { word: "帖", pinyin: "tiè", options: ["tiě", "tiē", "zhān"], note: "字帖(tiè)，請帖(tiě)，服帖(tiē)。" },
+        { word: "瓦", pinyin: "wà", options: ["wǎ", "wā", "gài"], note: "弄瓦(wà)之喜，瓦(wǎ)片。" },
+        { word: "緯", pinyin: "wěi", options: ["wéi", "huì", "yōng"], note: "經緯，勿讀 wéi。" },
+        { word: "文", pinyin: "wèn", options: ["wén", "mǐn", "wěn"], note: "文(wèn)過飾非，文(wén)字。" },
+        { word: "塢", pinyin: "wù", options: ["wū", "yù", "ǎo"], note: "船塢，四聲。" },
+        { word: "奚", pinyin: "xī", options: ["xì", "hǎi", "yì"], note: "奚落，一聲。" },
+        { word: "嚇", pinyin: "hè", options: ["xià", "hé", "kè"], note: "恐嚇(hè)，嚇(xià)人。" },
+        { word: "鮮", pinyin: "xiǎn", options: ["xiān", "xuǎn", "jiàn"], note: "鮮(xiǎn)為人知，新(xiān)鮮。" },
+        { word: "霰", pinyin: "xiàn", options: ["sàn", "xián", "zhèn"], note: "霰彈，勿讀 sàn。" },
+        { word: "相", pinyin: "xiàng", options: ["xiāng", "jiāng", "sǎng"], note: "相(xiàng)片，相(xiāng)信。" },
+        { word: "省", pinyin: "xǐng", options: ["shěng", "shēng", "xīng"], note: "省(xǐng)悟，省(shěng)份。" },
+        { word: "畜", pinyin: "xù", options: ["chù", "chuu", "zī"], note: "畜(xù)牧，牲畜(chù)。" },
+        { word: "旋", pinyin: "xuàn", options: ["xuán", "xuān", "zhuàn"], note: "旋(xuàn)風，旋(xuán)轉。" },
+        { word: "血", pinyin: "xuè", options: ["xiě", "xuě", "xiè"], note: "血(xuè)液，流血(xiě)。" },
+        { word: "熏", pinyin: "xūn", options: ["xùn", "yīn", "dūn"], note: "熏陶，一聲。" },
+        { word: "啞", pinyin: "yā", options: ["yǎ", "à", "yà"], note: "啞(yā)啞學語，啞(yǎ)巴。" },
+        { word: "殷", pinyin: "yān", options: ["yīn", "yǐn", "yàn"], note: "殷(yān)紅，殷(yīn)切。" },
+        { word: "咽", pinyin: "yè", options: ["yān", "yàn", "yie"], note: "嗚咽(yè)，咽(yān)喉，吞咽(yàn)。" },
+        { word: "鑰", pinyin: "yào", options: ["yuè", "yà", "shuò"], note: "鑰匙，勿讀 yuè。" },
+        { word: "葉", pinyin: "xié", options: ["yè", "shi", "jia"], note: "葉(xié)韻，樹葉(yè)。" },
+        { word: "艾", pinyin: "yì", options: ["ài", "āi", "li"], note: "自怨自艾(yì)，艾(ài)草。" },
+        { word: "應", pinyin: "yìng", options: ["yīng", "yíng", "rèn"], note: "應(yìng)用，應(yīng)該。" },
+        { word: "傭", pinyin: "yōng", options: ["yòng", "rǒng", "tōng"], note: "傭金，一聲。" },
+        { word: "熨", pinyin: "yù", options: ["yùn", "wèi", "yún"], note: "熨(yù)帖，熨(yùn)斗。" },
+        { word: "與", pinyin: "yù", options: ["yǔ", "yú", "jǔ"], note: "參與(yù)，與(yǔ)其。" },
+        { word: "籲", pinyin: "yù", options: ["xū", "yú", "yū"], note: "呼籲，勿讀 xū。" },
+        { word: "暈", pinyin: "yùn", options: ["yūn", "hūn", "huī"], note: "暈(yùn)車，暈(yūn)倒。" },
+        { word: "載", pinyin: "zài", options: ["zǎi", "chāi", "cái"], note: "載(zài)重，記載(zǎi)。" },
+        { word: "臟", pinyin: "zàng", options: ["zāng", "zhuāng", "cáng"], note: "心臟(zàng)，骯髒(zāng)。" },
+        { word: "軋", pinyin: "zhá", options: ["yà", "gá", "zā"], note: "軋(zhá)鋼，軋(yà)馬路，傾軋(yà)。" },
+        { word: "粘", pinyin: "zhān", options: ["nián", "nān", "zi"], note: "粘(zhān)貼，粘(nián)稠。" },
+        { word: "漲", pinyin: "zhǎng", options: ["zhàng", "zhāng", "cháng"], note: "漲(zhǎng)潮，頭昏腦漲(zhàng)。" },
+        { word: "著", pinyin: "zhuó", options: ["zhe", "zháo", "zhù"], note: "著(zhuó)急/著手，著(zhù)作。" },
+        { word: "殖", pinyin: "zhí", options: ["chì", "shí", "zé"], note: "繁殖，勿讀 '直' 或 '值' (常讀二聲)。" },
+        { word: "脂", pinyin: "zhī", options: ["zhǐ", "zī", "zhì"], note: "脂肪，一聲。" },
+        { word: "症", pinyin: "zhēng", options: ["zhèng", "zēng", "tòng"], note: "症(zhēng)結，病症(zhèng)。" },
+        { word: "只", pinyin: "zhī", options: ["zhǐ", "qí", "zi"], note: "只(zhī)身/船隻，只(zhǐ)有。" },
+        { word: "軸", pinyin: "zhóu", options: ["zhòu", "chōu", "yóu"], note: "壓軸(zhòu)，車軸(zhóu)。" },
+        { word: "屬", pinyin: "zhǔ", options: ["shǔ", "sǔ", "zǔ"], note: "屬(zhǔ)意，屬(shǔ)於。" },
+        { word: "轉", pinyin: "zhuǎi", options: ["zhuǎn", "zhuàn", "chuán"], note: "轉(zhuǎi)文，轉(zhuǎn)變。" },
+        { word: "幢", pinyin: "zhuàng", options: ["chuáng", "tóng", "zhung"], note: "一幢(zhuàng)樓，影影綽綽(chuò)。" },
+        { word: "鑽", pinyin: "zuān", options: ["zuàn", "zān", "cuan"], note: "鑽(zuān)石/鑽研，鑽(zuàn)頭。" },
+        { word: "柞", pinyin: "zuò", options: ["zhà", "zé", "cuò"], note: "柞(zuò)蠶，柞(zhà)水(地名)。" },
+        { word: "作", pinyin: "zuō", options: ["zuò", "zé", "zuó"], note: "作(zuō)死/作坊，工(zuò)作。" }
+    ];
+    // ==========================================
+    // 2. 星空背景邏輯 (Canvas)
+    // ==========================================
+    const canvas = document.getElementById('star-canvas');
+    const ctx = canvas.getContext('2d');
+    let stars = [];
 
-        function init() {
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 0, 750);
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initStars();
+    }
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1000);
-            camera.position.y = 10;
-
-            const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
-            light.position.set(0.5, 1, 0.75);
-            scene.add(light);
-            
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(100, 100, 50);
-            dirLight.castShadow = true;
-            scene.add(dirLight);
-
-            // --- 關鍵修改：PointerLockControls 初始化 ---
-            controls = new THREE.PointerLockControls(camera, document.body);
-
-            const blocker = document.getElementById('blocker');
-            const startBtn = document.getElementById('start-btn');
-            const instructions = document.getElementById('instructions');
-
-            // 使用按鈕觸發鎖定，成功率更高
-            startBtn.addEventListener('click', function () {
-                try {
-                    controls.lock();
-                } catch (e) {
-                    console.error("Pointer Lock Error:", e);
-                    alert("瀏覽器無法鎖定鼠標，請嘗試使用 Chrome 並確保不是在預覽模式下。");
-                }
-            });
-
-            controls.addEventListener('lock', function () {
-                blocker.style.display = 'none';
-                if(isBuyMenuOpen) toggleBuyMenu();
-            });
-
-            controls.addEventListener('unlock', function () {
-                if (!isBuyMenuOpen) {
-                    blocker.style.display = 'flex';
-                    startBtn.innerText = "回到遊戲";
-                    instructions.querySelector('h1').innerText = "暫停";
-                }
-            });
-
-            scene.add(controls.getObject());
-
-            // 鍵盤事件
-            const onKeyDown = function (event) {
-                switch (event.code) {
-                    case 'ArrowUp': case 'KeyW': moveForward = true; break;
-                    case 'ArrowLeft': case 'KeyA': moveLeft = true; break;
-                    case 'ArrowDown': case 'KeyS': moveBackward = true; break;
-                    case 'ArrowRight': case 'KeyD': moveRight = true; break;
-                    case 'Space': if (canJump === true) velocity.y += 350; canJump = false; break;
-                    case 'KeyB': toggleBuyMenu(); break;
-                    case 'KeyR': reload(); break;
-                }
-            };
-
-            const onKeyUp = function (event) {
-                switch (event.code) {
-                    case 'ArrowUp': case 'KeyW': moveForward = false; break;
-                    case 'ArrowLeft': case 'KeyA': moveLeft = false; break;
-                    case 'ArrowDown': case 'KeyS': moveBackward = false; break;
-                    case 'ArrowRight': case 'KeyD': moveRight = false; break;
-                }
-            };
-
-            document.addEventListener('keydown', onKeyDown);
-            document.addEventListener('keyup', onKeyUp);
-            document.addEventListener('mousedown', shoot);
-
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setPixelRatio(window.devicePixelRatio);
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.body.appendChild(renderer.domElement);
-
-            window.addEventListener('resize', onWindowResize);
-
-            createMap();
-            spawnBots(9);
-            createWeaponModel();
-            updateHUD();
-        }
-
-        function createMap() {
-            const floorGeometry = new THREE.PlaneGeometry(2000, 2000);
-            const floorMaterial = new THREE.MeshLambertMaterial({ color: 0xEBCFA8 });
-            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-            floor.rotation.x = -Math.PI / 2;
-            floor.receiveShadow = true;
-            scene.add(floor);
-
-            function createWall(x, y, z, w, h, d, color = 0xC2B280) {
-                const geometry = new THREE.BoxGeometry(w, h, d);
-                const material = new THREE.MeshLambertMaterial({ color: color });
-                const wall = new THREE.Mesh(geometry, material);
-                wall.position.set(x, y + h / 2, z);
-                wall.castShadow = true;
-                wall.receiveShadow = true;
-                scene.add(wall);
-                obstacles.push(wall);
-                return wall;
-            }
-
-            createWall(0, 0, -200, 400, 40, 10);
-            createWall(0, 0, 200, 400, 40, 10);
-            createWall(-200, 0, 0, 10, 40, 400);
-            createWall(200, 0, 0, 10, 40, 400);
-            createWall(-50, 0, 0, 20, 30, 150);
-            createWall(50, 0, 0, 20, 30, 150);
-            createWall(120, 0, -120, 60, 20, 60, 0x8B4513);
-            createWall(150, 0, -50, 10, 30, 100);
-            createWall(-120, 0, -120, 60, 25, 60, 0x8B4513);
-            createWall(-100, 0, -50, 100, 30, 10);
-            createWall(0, 0, 150, 40, 20, 40);
-        }
-
-        function createWeaponModel() {
-            if(gunMesh) camera.remove(gunMesh);
-            const geo = new THREE.BoxGeometry(0.5, 0.5, 2);
-            const mat = new THREE.MeshLambertMaterial({ color: weapons[currentWeapon].color });
-            gunMesh = new THREE.Mesh(geo, mat);
-            gunMesh.position.set(1, -1, -2);
-            camera.add(gunMesh);
-        }
-
-        function shoot() {
-            if (!controls.isLocked || isBuyMenuOpen) return;
-            if (ammo <= 0) return;
-
-            const now = performance.now();
-            const weaponData = weapons[currentWeapon];
-            if (now - lastShotTime < weaponData.fireRate) return;
-
-            lastShotTime = now;
-            ammo--;
-            updateHUD();
-
-            gunMesh.position.z += 0.5;
-            setTimeout(() => { gunMesh.position.z -= 0.5; }, 50);
-
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
-            const intersects = raycaster.intersectObjects(scene.children);
-            
-            createBulletTracer(raycaster.ray);
-
-            for (let i = 0; i < intersects.length; i++) {
-                const obj = intersects[i].object;
-                if (obj.userData.isBot) {
-                    damageBot(obj, weaponData.damage);
-                    break;
-                }
-                if (obstacles.includes(obj) || obj.geometry.type === 'PlaneGeometry') {
-                    createImpact(intersects[i].point);
-                    break;
-                }
-            }
-        }
-
-        function createBulletTracer(ray) {
-            const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
-            const points = [
-                gunMesh.getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0,0,-1)),
-                ray.at(100, new THREE.Vector3())
-            ];
-            const geometry = new THREE.BufferGeometry().setFromPoints(points);
-            const line = new THREE.Line(geometry, material);
-            scene.add(line);
-            setTimeout(() => scene.remove(line), 50);
-        }
-
-        function createImpact(point) {
-            const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-            const mat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const mesh = new THREE.Mesh(geo, mat);
-            mesh.position.copy(point);
-            scene.add(mesh);
-            setTimeout(() => scene.remove(mesh), 2000);
-        }
-
-        function spawnBots(count) {
-            const botGeo = new THREE.CylinderGeometry(1.5, 1.5, 6, 8); 
-            const botMatT = new THREE.MeshLambertMaterial({ color: 0xFF0000 });
-            const botMatCT = new THREE.MeshLambertMaterial({ color: 0x0000FF });
-
-            for (let i = 0; i < count; i++) {
-                const bot = new THREE.Mesh(botGeo, (Math.random()>0.5) ? botMatT : botMatCT);
-                bot.position.set((Math.random() - 0.5) * 300, 3, (Math.random() - 0.5) * 300);
-                
-                bot.userData = { 
-                    isBot: true, 
-                    health: 100, 
-                    changeDirTime: 0,
-                    randomDir: new THREE.Vector3()
-                };
-                
-                scene.add(bot);
-                bots.push(bot);
-            }
-        }
-
-        function damageBot(bot, amount) {
-            bot.userData.health -= amount;
-            bot.material.emissive.setHex(0xffffff);
-            setTimeout(() => bot.material.emissive.setHex(0x000000), 50);
-
-            if (bot.userData.health <= 0) {
-                killBot(bot);
-            }
-        }
-
-        function killBot(bot) {
-            scene.remove(bot);
-            const index = bots.indexOf(bot);
-            if (index > -1) bots.splice(index, 1);
-            money += 300;
-            updateHUD();
-            showKillFeed("Player", "Bot");
-            setTimeout(() => spawnBots(1), 3000);
-        }
-
-        function updateBots(delta) {
-            const playerPos = controls.getObject().position;
-            bots.forEach(bot => {
-                const data = bot.userData;
-                const directionToPlayer = new THREE.Vector3().subVectors(playerPos, bot.position).normalize();
-                
-                if (performance.now() > data.changeDirTime) {
-                    data.randomDir = new THREE.Vector3(Math.random()-0.5, 0, Math.random()-0.5).normalize();
-                    data.changeDirTime = performance.now() + 1000;
-                }
-
-                const moveDir = new THREE.Vector3().addVectors(directionToPlayer.multiplyScalar(0.5), data.randomDir.multiplyScalar(0.5)).normalize();
-                bot.position.add(moveDir.multiplyScalar(10 * delta));
-                bot.lookAt(playerPos);
+    function initStars() {
+        stars = [];
+        const starCount = 100;
+        for (let i = 0; i < starCount; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 1.5,
+                alpha: Math.random(),
+                speed: Math.random() * 0.05
             });
         }
+    }
 
-        function toggleBuyMenu() {
-            isBuyMenuOpen = !isBuyMenuOpen;
-            const menu = document.getElementById('buy-menu');
-            const blocker = document.getElementById('blocker');
-            
-            if (isBuyMenuOpen) {
-                menu.style.display = 'block';
-                blocker.style.display = 'none';
-                controls.unlock();
-            } else {
-                menu.style.display = 'none';
-                controls.lock();
-            }
+    function drawStars() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        stars.forEach(star => {
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+            ctx.fill();
+            star.alpha += star.speed;
+            if (star.alpha > 1 || star.alpha < 0.2) star.speed = -star.speed;
+        });
+        requestAnimationFrame(drawStars);
+    }
+
+    // ==========================================
+    // 3. 遊戲邏輯
+    // ==========================================
+    let currentQuestions = [];
+    let currentIndex = 0;
+    let score = 0;
+    let canAnswer = true;
+    let answeredHistory = []; // 用於最後回顧
+
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
         }
+        return array;
+    }
 
-        window.buyWeapon = function(weaponName, cost) {
-            if (money >= cost) {
-                money -= cost;
-                currentWeapon = weaponName;
-                ammo = weapons[weaponName].magSize;
-                totalAmmo = weapons[weaponName].magSize * 3;
-                createWeaponModel();
-                updateHUD();
-                toggleBuyMenu();
-            } else {
-                alert("金錢不足！");
-            }
-        };
-
-        window.buyArmor = function() {
-            if (money >= 650) {
-                money -= 650;
-                document.getElementById('armor').innerText = "100";
-                updateHUD();
-            }
-        };
+    function initGame() {
+        currentIndex = 0;
+        score = 0;
+        answeredHistory = [];
+        document.getElementById('game-screen').style.display = 'block';
+        document.getElementById('result-screen').style.display = 'none';
         
-        function reload() {
-            if (totalAmmo > 0 && ammo < weapons[currentWeapon].magSize) {
-                ammo = weapons[currentWeapon].magSize;
-                totalAmmo -= weapons[currentWeapon].magSize;
-                if(totalAmmo < 0) totalAmmo = 0;
-                gunMesh.rotation.x = Math.PI;
-                setTimeout(() => gunMesh.rotation.x = 0, 1000);
-                updateHUD();
+        // 隨機選 20 題
+        const shuffled = shuffleArray([...fullQuestionBank]);
+        currentQuestions = shuffled.slice(0, 20);
+        
+        renderQuestion();
+    }
+
+    function renderQuestion() {
+        // 重置狀態
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('feedback-text').innerHTML = '';
+        canAnswer = true;
+
+        if (currentIndex >= currentQuestions.length) {
+            endGame();
+            return;
+        }
+
+        const q = currentQuestions[currentIndex];
+        const progressPercent = (currentIndex / 20) * 100;
+        
+        document.getElementById('progress').style.width = `${progressPercent}%`;
+        document.getElementById('question-word').textContent = q.word;
+        
+        // 準備選項
+        let options = [q.pinyin, ...q.options];
+        options = shuffleArray(options);
+
+        const container = document.getElementById('options-container');
+        container.innerHTML = '';
+
+        options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = opt;
+            btn.onclick = () => handleAnswer(opt, q);
+            container.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(selected, question) {
+        if (!canAnswer) return;
+        canAnswer = false; // 鎖定
+
+        const buttons = document.querySelectorAll('.option-btn');
+        let isCorrect = selected === question.pinyin;
+
+        // 樣式處理
+        buttons.forEach(btn => {
+            if (btn.textContent === question.pinyin) {
+                btn.classList.add('correct'); // 正確答案顯綠
+            } else if (btn.textContent === selected && !isCorrect) {
+                btn.classList.add('wrong'); // 選錯顯紅
             }
+            btn.disabled = true; // 禁用所有按鈕
+        });
+
+        // 顯示反饋
+        const feedbackDiv = document.getElementById('feedback-text');
+        if (isCorrect) {
+            score++;
+            feedbackDiv.innerHTML = `<span style="color:var(--success-color); font-weight:bold;">✅ 答對了！</span>`;
+        } else {
+            feedbackDiv.innerHTML = `<span style="color:var(--accent-color); font-weight:bold;">❌ 答錯了！應讀：${question.pinyin}</span>`;
+        }
+        
+        // 顯示幽默提示
+        if (question.note) {
+            feedbackDiv.innerHTML += `<span class="feedback-note">💡 ${question.note}</span>`;
         }
 
-        function updateHUD() {
-            document.getElementById('health').innerText = health;
-            document.getElementById('money').innerText = money;
-            document.getElementById('ammo').innerText = `${ammo}/${totalAmmo}`;
+        // 記錄到歷史
+        answeredHistory.push({
+            word: question.word,
+            pinyin: question.pinyin,
+            note: question.note,
+            isCorrect: isCorrect
+        });
+
+        // ★★★ 關鍵修改：顯示「下一題」按鈕，而不是自動跳轉 ★★★
+        document.getElementById('next-btn').style.display = 'block';
+    }
+
+    function nextQuestion() {
+        currentIndex++;
+        renderQuestion();
+    }
+
+    function endGame() {
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        
+        const finalScore = score * 5;
+        const scoreCircle = document.getElementById('final-score');
+        const evalText = document.getElementById('eval-text');
+        
+        scoreCircle.textContent = finalScore;
+        
+        // 評語邏輯
+        if (finalScore >= 90) {
+            scoreCircle.style.borderColor = "#27ae60";
+            scoreCircle.style.color = "#27ae60";
+            evalText.innerHTML = "<strong>一級乙等水平！</strong><br>語音面貌極佳，請保持。";
+        } else if (finalScore >= 80) {
+            scoreCircle.style.borderColor = "#2980b9";
+            scoreCircle.style.color = "#2980b9";
+            evalText.innerHTML = "<strong>二級甲等水平！</strong><br>已達教師基準，注意微細雜音。";
+        } else if (finalScore >= 70) {
+            scoreCircle.style.borderColor = "#f39c12";
+            scoreCircle.style.color = "#f39c12";
+            evalText.innerHTML = "<strong>二級乙等水平。</strong><br>受粵語習慣影響，需加強。";
+        } else {
+            scoreCircle.style.borderColor = "#c0392b";
+            scoreCircle.style.color = "#c0392b";
+            evalText.innerHTML = "<strong>請重讀《實施綱要》。</strong><br>你的「港式拼音」問題嚴重。";
         }
 
-        function showKillFeed(killer, victim) {
-            const feed = document.getElementById('kill-feed');
-            const msg = document.createElement('div');
-            msg.className = 'kill-msg';
-            msg.innerHTML = `<b>${killer}</b> 🔫 ${victim}`;
-            feed.appendChild(msg);
-            setTimeout(() => {
-                msg.style.opacity = 0;
-                setTimeout(() => msg.remove(), 1000);
-            }, 3000);
-        }
+        // 生成回顧列表
+        const reviewContainer = document.getElementById('review-container');
+        let html = "";
+        answeredHistory.forEach(item => {
+            const color = item.isCorrect ? "#2ecc71" : "#e74c3c";
+            html += `
+                <div class="review-item">
+                    <span style="color:${color}; font-weight:bold;">${item.word}</span> 
+                    <span style="color:#f1c40f;">${item.pinyin}</span>
+                    <div style="font-size:12px; color:#95a5a6; margin-top:4px;">${item.note}</div>
+                </div>
+            `;
+        });
+        reviewContainer.innerHTML = html;
+    }
 
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
+    // 初始化背景和遊戲
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    drawStars();
+    initGame();
 
-        function animate() {
-            requestAnimationFrame(animate);
-            const time = performance.now();
-            
-            if (controls.isLocked === true) {
-                const delta = (time - prevTime) / 1000;
+</script>
 
-                velocity.x -= velocity.x * 10.0 * delta;
-                velocity.z -= velocity.z * 10.0 * delta;
-                velocity.y -= 9.8 * 100.0 * delta;
-
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize();
-
-                if (moveForward || moveBackward) velocity.z -= direction.z * 400.0 * delta;
-                if (moveLeft || moveRight) velocity.x -= direction.x * 400.0 * delta;
-
-                controls.moveRight(-velocity.x * delta);
-                controls.moveForward(-velocity.z * delta);
-                controls.getObject().position.y += (velocity.y * delta);
-
-                if (controls.getObject().position.y < 10) {
-                    velocity.y = 0;
-                    controls.getObject().position.y = 10;
-                    canJump = true;
-                }
-                
-                updateBots(delta);
-            }
-            prevTime = time;
-            renderer.render(scene, camera);
-        }
-
-        init();
-        animate();
-    </script>
 </body>
 </html>
