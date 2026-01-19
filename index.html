@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSC 語境辨音特訓 (港區專用)</title>
+    <title>PSC 智能語境辨音特訓 (進度追蹤版)</title>
     <style>
         /* ==================== 
-           1. 護眼星空配色 (Dark Mode)
+           1. 視覺風格設置 (深空護眼模式)
            ==================== */
         :root {
             --bg-color: #0f1319;       /* 深空藍黑 */
-            --card-bg: rgba(23, 32, 42, 0.95); /* 卡片背景加深 */
+            --card-bg: rgba(23, 32, 42, 0.95); /* 卡片背景 */
             --text-primary: #ecf0f1;   
             --text-secondary: #bdc3c7; 
             --accent-color: #e74c3c;   /* 錯誤紅 */
             --success-color: #2ecc71;  /* 正確綠 */
-            --highlight-color: #f1c40f; /* 目標字高亮色 (金黃) */
+            --highlight-color: #f1c40f; /* 重點高亮(金黃) */
             --btn-next: #d35400;       
         }
 
@@ -29,7 +29,7 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            overflow: hidden;
+            overflow: hidden; /* 防止滾動條 */
         }
 
         #star-canvas {
@@ -55,15 +55,18 @@
             z-index: 10;
         }
 
-        .progress-bar {
+        /* 進度條樣式 */
+        .progress-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .progress-bar-bg {
             width: 100%;
             height: 6px;
             background-color: #2c3e50;
             border-radius: 3px;
-            margin-bottom: 20px;
             overflow: hidden;
         }
-
         .progress-fill {
             height: 100%;
             background-color: var(--highlight-color);
@@ -71,27 +74,26 @@
             transition: width 0.3s ease;
         }
 
-        /* 題目顯示區優化：支持顯示詞語 */
+        /* 題目顯示 */
         .word-display {
-            font-size: 60px; /* 字體稍微調小以容納詞語 */
+            font-size: 50px;
             font-weight: bold;
             margin: 20px 0 40px 0;
             color: #fff;
             text-shadow: 0 2px 10px rgba(0,0,0,0.3);
             letter-spacing: 2px;
-            min-height: 80px;
+            min-height: 70px;
         }
 
-        /* 目標字高亮樣式 */
         .target-char {
             color: var(--highlight-color);
-            font-size: 75px; /* 目標字放大 */
+            font-size: 65px;
             border-bottom: 4px solid var(--highlight-color);
             padding-bottom: 5px;
             display: inline-block;
-            transition: all 0.3s ease;
         }
 
+        /* 選項按鈕 */
         .options-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -108,7 +110,7 @@
             font-size: 22px;
             cursor: pointer;
             transition: all 0.2s;
-            font-family: Arial, sans-serif; /* 拼音用 Arial 更清晰 */
+            font-family: Arial, sans-serif;
         }
 
         button.option-btn:hover:not(:disabled) {
@@ -131,10 +133,10 @@
             opacity: 0.6;
         }
 
+        /* 反饋區域 */
         .feedback-area {
-            min-height: 90px;
+            min-height: 100px;
             margin-top: 15px;
-            font-size: 18px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -150,7 +152,7 @@
             padding: 10px 20px;
             border-radius: 8px;
             line-height: 1.5;
-            max-width: 90%;
+            max-width: 95%;
         }
 
         .btn-next-q {
@@ -162,16 +164,17 @@
             border-radius: 50px;
             cursor: pointer;
             margin-top: 15px;
-            display: none;
+            display: none; /* 默認隱藏 */
             box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4);
             animation: popIn 0.3s ease;
         }
-        
         .btn-next-q:hover { background-color: #e67e22; }
+
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
         /* 結算畫面 */
         .result-screen { display: none; }
+        
         .score-circle {
             width: 140px; height: 140px;
             border-radius: 50%;
@@ -181,9 +184,31 @@
             margin: 0 auto 20px;
             color: var(--text-primary);
         }
+
+        /* 新增：總進度展示區 */
+        .mastery-stats-box {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .mastery-label {
+            display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #bdc3c7;
+        }
+        .mastery-bar {
+            height: 10px; background: #34495e; border-radius: 5px; overflow: hidden;
+        }
+        .mastery-fill {
+            height: 100%; background: linear-gradient(90deg, #f1c40f, #2ecc71); width: 0%; transition: width 1s ease-out;
+        }
+        .mastery-details {
+            margin-top: 10px; font-size: 13px; color: #7f8c8d; text-align: center;
+        }
+
         .review-list {
             text-align: left;
-            max-height: 350px;
+            max-height: 250px;
             overflow-y: auto;
             margin: 20px 0;
             padding-right: 10px;
@@ -194,12 +219,19 @@
             border-bottom: 1px solid rgba(255,255,255,0.05);
             font-size: 16px;
         }
-        .review-context { font-weight: bold; font-size: 18px; }
-        .review-target { color: var(--highlight-color); }
+        
         .btn-restart {
             background-color: #2980b9; color: white; border: none;
-            padding: 15px 30px; border-radius: 8px; font-size: 18px; cursor: pointer;
+            padding: 15px 40px; border-radius: 8px; font-size: 18px; cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
         }
+        .btn-restart:hover { background-color: #3498db; }
+        
+        /* 滾動條樣式 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a252f; }
+        ::-webkit-scrollbar-thumb { background: #34495e; border-radius: 4px; }
 
     </style>
 </head>
@@ -209,364 +241,172 @@
 
 <div class="container">
     <div id="game-screen">
-        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">PSC 語境辨音特訓 | 隨機 20 題</div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">PSC 語境辨音特訓 | 智能模式</div>
         <div style="font-size: 16px; color: var(--highlight-color); margin-bottom: 15px;">
-            請選出<span style="border-bottom: 2px solid var(--highlight-color);">黃色字</span>在該詞語中的正確讀音
+            請選出<span style="border-bottom: 2px solid var(--highlight-color);">黃色字</span>的正確讀音
         </div>
         
-        <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+        <div class="progress-container">
+            <div class="progress-bar-bg">
+                <div class="progress-fill" id="session-progress"></div>
+            </div>
+        </div>
 
-        <div class="word-display" id="question-word">載入中</div>
+        <div class="word-display" id="question-word">載入中...</div>
 
         <div class="options-grid" id="options-container"></div>
 
         <div class="feedback-area" id="feedback-box">
             <div id="feedback-text"></div>
-            <button class="btn-next-q" id="next-btn" onclick="nextQuestion()">👉 下一題</button>
-        </div>
+            </div>
     </div>
 
     <div id="result-screen" class="result-screen">
-        <h1 style="color:#fff;">特訓結束</h1>
-        <div class="score-circle" id="final-score">0</div>
-        <p id="eval-text" style="color:#bdc3c7; margin-bottom: 20px;">...</p>
+        <h2 style="color:#fff; margin-top:0;">特訓結束</h2>
         
-        <div style="text-align:left; color:#f1c40f; font-size:14px;">📝 錯題與重點回顧：</div>
+        <div class="score-circle" id="final-score">0</div>
+        <p id="eval-text" style="color:#bdc3c7; margin-bottom: 15px;">...</p>
+        
+        <div class="mastery-stats-box">
+            <div class="mastery-label">
+                <span>總題庫掌握度 (連續答對3次)</span>
+                <span id="mastery-percentage">0%</span>
+            </div>
+            <div class="mastery-bar">
+                <div class="mastery-fill" id="mastery-bar-fill"></div>
+            </div>
+            <div class="mastery-details" id="mastery-count-text">
+                已精通 0 / 200 字
+            </div>
+        </div>
+
+        <div style="text-align:left; color:#f1c40f; font-size:14px; margin-top:15px;">
+            📝 本局錯題回顧 (已加入復仇清單)：
+        </div>
         <div class="review-list" id="review-container"></div>
-        <button class="btn-restart" onclick="initGame()">再來一局 🔄</button>
+        
+        <button class="btn-restart" onclick="initGame()">再來一局 (優先複習錯題) 🔄</button>
+        <button style="background:transparent; border:none; color:#576574; font-size:12px; margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="resetAllData()">⚠️ 重置所有學習記錄</button>
     </div>
 </div>
 
 <script>
     // ==========================================
-    // 1. 帶「語境 (Context)」的升級題庫
-    // word: 目標字
-    // context: 完整詞語/句子
-    // pinyin: 正確讀音
-    // options: 混淆項
-    // note: 專家提示
-    // ==========================================
-// ==========================================
-    // 3. 超大容量題庫 (200+ 題)
-    // 包含：多音字辨析、港人常錯音、PSC 必考詞彙
+    // 1. 核心題庫 (已為你擴充了大量易錯字)
     // ==========================================
     const fullQuestionBank = [
-        // --- A to C ---
         { word: "阿", context: "阿姨", pinyin: "ā", options: ["ē", "a", "á"], note: "稱呼常用 ā。阿膠讀 ē。" },
         { word: "阿", context: "阿膠", pinyin: "ē", options: ["ā", "a", "á"], note: "藥名讀 ē。" },
         { word: "挨", context: "挨近", pinyin: "āi", options: ["ái", "ài", "ā"], note: "靠近讀 āi (一聲)。" },
         { word: "挨", context: "挨打", pinyin: "ái", options: ["āi", "ài", "à"], note: "受苦/拖延讀 ái (二聲)。" },
-        { word: "拗", context: "執拗", pinyin: "niù", options: ["ǎo", "ào", "yòu"], note: "固執讀 niù。" },
-        { word: "拗", context: "拗口", pinyin: "ào", options: ["ǎo", "niù", "yāo"], note: "不順口讀 ào。" },
-        { word: "扒", context: "扒手", pinyin: "pá", options: ["bā", "pā", "bá"], note: "偷東西讀 pá。扒皮讀 bā。" },
-        { word: "把", context: "刀把", pinyin: "bà", options: ["bǎ", "ba", "pá"], note: "器物的手柄讀 bà。" },
-        { word: "蚌", context: "蛤蚌", pinyin: "bàng", options: ["bēng", "fēng", "pàng"], note: "軟體動物讀 bàng。" },
-        { word: "磅", context: "磅礴", pinyin: "páng", options: ["bàng", "pāng", "bāng"], note: "氣勢盛大讀 páng。重量讀 bàng。" },
-        { word: "薄", context: "單薄", pinyin: "bó", options: ["báo", "bò", "bú"], note: "書面語/不厚重讀 bó。薄餅讀 báo。" },
-        { word: "薄", context: "薄荷", pinyin: "bò", options: ["báo", "bó", "bù"], note: "植物名讀 bò。" },
-        { word: "背", context: "背包", pinyin: "bēi", options: ["bèi", "bēi", "pēi"], note: "背負讀 bēi。背誦讀 bèi。" },
-        { word: "奔", context: "投奔", pinyin: "bèn", options: ["bēn", "fēn", "pēn"], note: "去某地讀 bèn。奔跑讀 bēn。" },
-        { word: "辟", context: "復辟", pinyin: "bì", options: ["pì", "bèi", "pī"], note: "恢復君位讀 bì。開闢讀 pì。" },
-        { word: "屏", context: "屏息", pinyin: "bǐng", options: ["píng", "bīng", "pǐng"], note: "抑止氣息讀 bǐng。屏幕讀 píng。" },
-        { word: "剝", context: "剝削", pinyin: "bō", options: ["bāo", "bó", "pō"], note: "書面/壓榨讀 bō。剝皮(口語)讀 bāo。" },
-        { word: "泊", context: "停泊", pinyin: "bó", options: ["pō", "pò", "bái"], note: "船停靠讀 bó。湖泊讀 pō。" },
-        { word: "伯", context: "大伯", pinyin: "bó", options: ["bǎi", "bá", "bè"], note: "父親的哥哥讀 bó。老伯(口語)有時讀 bǎi。" },
-        { word: "捕", context: "逮捕", pinyin: "bǔ", options: ["pǔ", "fǔ", "bù"], note: "聲母 b！" },
-        { word: "哺", context: "哺乳", pinyin: "bǔ", options: ["pǔ", "fǔ", "bù"], note: "餵食讀 bǔ。" },
-        { word: "參", context: "參差", pinyin: "cēn", options: ["cān", "shēn", "chā"], note: "長短不齊讀 cēn。" },
-        { word: "參", context: "人參", pinyin: "shēn", options: ["cān", "cī", "sān"], note: "藥材讀 shēn。" },
-        { word: "藏", context: "寶藏", pinyin: "zàng", options: ["cáng", "zhàng", "zāng"], note: "名詞讀 zàng。動詞(躲藏)讀 cáng。" },
-        { word: "差", context: "出差", pinyin: "chāi", options: ["chā", "chà", "cī"], note: "派遣讀 chāi。差別讀 chā。" },
-        { word: "差", context: "差錯", pinyin: "chā", options: ["chāi", "chà", "cī"], note: "錯誤讀 chā。差勁讀 chà。" },
-        { word: "剎", context: "古剎", pinyin: "chà", options: ["shā", "shà", "cā"], note: "寺廟讀 chà。剎車讀 shā。" },
-        { word: "禪", context: "禪讓", pinyin: "shàn", options: ["chán", "zhàn", "dān"], note: "讓位讀 shàn。禪宗讀 chán。" },
-        { word: "顫", context: "顫慄", pinyin: "zhàn", options: ["chàn", "shàn", "zhān"], note: "發抖(書面)讀 zhàn。顫動(口語)讀 chàn。" },
-        { word: "場", context: "場院", pinyin: "cháng", options: ["chǎng", "chāng", "shāng"], note: "平坦空地(農用)讀 cháng。廣場讀 chǎng。" },
-        { word: "嘲", context: "嘲笑", pinyin: "cháo", options: ["zhāo", "cáo", "chāo"], note: "譏諷讀 cháo。" },
-        { word: "乘", context: "千乘之國", pinyin: "shèng", options: ["chéng", "chèng", "shēng"], note: "古量詞(車)讀 shèng。乘車讀 chéng。" },
-        { word: "稱", context: "稱職", pinyin: "chèn", options: ["chēng", "chèng", "cèn"], note: "合適讀 chèn。稱讚讀 chēng。" },
-        { word: "澄", context: "澄澈", pinyin: "chéng", options: ["dèng", "chēng", "zhèng"], note: "清澈讀 chéng。液體沉澱(澄沙)讀 dèng。" },
-        { word: "匙", context: "鑰匙", pinyin: "shi", options: ["chí", "shí", "si"], note: "輕聲 shi。湯匙讀 chí。" },
-        { word: "臭", context: "銅臭", pinyin: "xiù", options: ["chòu", "xiu", "còu"], note: "氣味(特指壞名聲)讀 xiù。臭味讀 chòu。" },
-        { word: "處", context: "處分", pinyin: "chǔ", options: ["chù", "cǔ", "shù"], note: "動詞(處置)讀 chǔ。地方讀 chù。" },
-        { word: "畜", context: "畜牧", pinyin: "xù", options: ["chù", "chuu", "zī"], note: "飼養讀 xù。牲畜讀 chù。" },
-        { word: "創", context: "創傷", pinyin: "chuāng", options: ["chuàng", "cāng", "shuāng"], note: "傷口讀 chuāng。創造讀 chuàng。" },
-        { word: "伺", context: "伺候", pinyin: "cì", options: ["sì", "shì", "cī"], note: "服侍讀 cì。窺探(伺機)讀 sì。" },
-        { word: "綜", context: "綜合", pinyin: "zōng", options: ["zòng", "cōng", "sōng"], note: "一聲！勿讀四聲。" },
-        { word: "攢", context: "積攢", pinyin: "zǎn", options: ["cuán", "zān", "zuǎn"], note: "積聚讀 zǎn。聚攏(攢射)讀 cuán。" },
-        { word: "撮", context: "一撮毛", pinyin: "zuǒ", options: ["cuō", "zuò", "cuò"], note: "量詞讀 zuǒ。聚集(撮合)讀 cuō。" },
-
-        // --- D to G ---
-        { word: "答", context: "答應", pinyin: "dā", options: ["dá", "tā", "dà"], note: "應允讀 dā。回答讀 dá。" },
-        { word: "大", context: "大夫", pinyin: "dài", options: ["dà", "tài", "dā"], note: "醫生讀 dài。大小讀 dà。" },
-        { word: "逮", context: "逮捕", pinyin: "dài", options: ["dǎi", "tài", "dì"], note: "捉拿讀 dài (書面)。逮住(口語)讀 dǎi。" },
-        { word: "當", context: "當鋪", pinyin: "dàng", options: ["dāng", "tāng", "dǎng"], note: "抵押讀 dàng。應當讀 dāng。" },
-        { word: "倒", context: "倒水", pinyin: "dào", options: ["dǎo", "tào", "dāo"], note: "傾出/上下顛倒讀 dào。跌倒讀 dǎo。" },
-        { word: "提", context: "提防", pinyin: "dī", options: ["tí", "dǐ", "zhī"], note: "小心讀 dī。提升讀 tí。" },
-        { word: "度", context: "揣度", pinyin: "duó", options: ["dù", "duō", "tù"], note: "推測讀 duó。程度讀 dù。" },
-        { word: "都", context: "都市", pinyin: "dū", options: ["dōu", "dú", "zhǔ"], note: "城市讀 dū。全都讀 dōu。" },
-        { word: "囤", context: "囤積", pinyin: "tún", options: ["dùn", "tūn", "chún"], note: "積存讀 tún。糧倉(糧囤)讀 dùn。" },
-        { word: "發", context: "頭髮", pinyin: "fà", options: ["fā", "fá", "bō"], note: "毛髮讀 fà。發射讀 fā。" },
-        { word: "坊", context: "作坊", pinyin: "zuō", options: ["fāng", "fáng", "fǎng"], note: "工場讀 zuō (注意：這裡考作字)。街坊讀 fang。" },
-        { word: "坊", context: "街坊", pinyin: "fang", options: ["fáng", "fāng", "wáng"], note: "鄰居讀輕聲/一聲。磨坊讀 fáng。" },
-        { word: "縫", context: "縫隙", pinyin: "fèng", options: ["féng", "fēng", "pèng"], note: "空隙讀 fèng。縫補讀 féng。" },
-        { word: "服", context: "說服", pinyin: "fú", options: ["fù", "shuì", "bó"], note: "二聲 fú。勿讀 fù。" },
-        { word: "桿", context: "筆桿", pinyin: "gǎn", options: ["gān", "gàn", "hàn"], note: "器物的主幹讀 gǎn。旗桿讀 gān。" },
-        { word: "葛", context: "姓葛", pinyin: "gě", options: ["gé", "gǎ", "hé"], note: "姓氏讀 gě。瓜葛讀 gé。" },
-        { word: "給", context: "給予", pinyin: "jǐ", options: ["gěi", "yǔ", "jí"], note: "書面語/供應讀 jǐ。給你(口語)讀 gěi。" },
-        { word: "更", context: "三更", pinyin: "gēng", options: ["gèng", "gěng", "jīng"], note: "時間讀 gēng。更加讀 gèng。" },
-        { word: "供", context: "供給", pinyin: "gōng", options: ["gòng", "gǒng", "jīng"], note: "提供讀 gōng。供品/招供讀 gòng。" },
-        { word: "勾", context: "勾當", pinyin: "gòu", options: ["gōu", "gǒu", "hòu"], note: "壞事讀 gòu。勾結讀 gōu。" },
-        { word: "骨", context: "骨碌", pinyin: "gū", options: ["gǔ", "gú", "hú"], note: "滾動讀 gū。骨頭讀 gǔ。" },
-        { word: "冠", context: "冠軍", pinyin: "guàn", options: ["guān", "guǎn", "huàn"], note: "第一名讀 guàn。帽子(皇冠)讀 guān。" },
-        { word: "檜", context: "秦檜", pinyin: "huì", options: ["guì", "kuài", "huài"], note: "人名讀 huì。" },
-        { word: "過", context: "姓過", pinyin: "guō", options: ["guò", "gū", "hé"], note: "姓氏讀 guō。經過讀 guò。" },
-
-        // --- H to J ---
-        { word: "行", context: "道行", pinyin: "héng", options: ["xíng", "háng", "hèng"], note: "修行的功夫讀 héng。行走讀 xíng。銀行讀 háng。" },
-        { word: "巷", context: "巷道", pinyin: "hàng", options: ["xiàng", "háng", "gǎng"], note: "採礦坑道讀 hàng。巷子讀 xiàng。" },
-        { word: "和", context: "附和", pinyin: "hè", options: ["hé", "huó", "huò"], note: "跟著唱/說讀 hè。" },
-        { word: "和", context: "和麵", pinyin: "huó", options: ["hé", "hè", "huò"], note: "粉末加水揉弄讀 huó。" },
-        { word: "和", context: "和藥", pinyin: "huò", options: ["hé", "hè", "huó"], note: "攪拌讀 huò。" },
-        { word: "橫", context: "蠻橫", pinyin: "hèng", options: ["héng", "hēng", "gèng"], note: "粗暴/不講理讀 hèng。橫行讀 héng。" },
-        { word: "哄", context: "起哄", pinyin: "hòng", options: ["hōng", "hǒng", "gōng"], note: "吵鬧讀 hòng。哄騙讀 hǒng。" },
-        { word: "劃", context: "計劃", pinyin: "huà", options: ["huá", "huā", "gē"], note: "籌謀讀 huà。划船讀 huá。" },
-        { word: "晃", context: "晃眼", pinyin: "huǎng", options: ["huàng", "huāng", "guāng"], note: "光芒閃耀讀 huǎng。搖晃讀 huàng。" },
-        { word: "會", context: "會計", pinyin: "kuài", options: ["huì", "guì", "kuāi"], note: "財務職務讀 kuài。會議讀 huì。" },
-        { word: "混", context: "混水摸魚", pinyin: "hún", options: ["hùn", "hūn", "kūn"], note: "水不清讀 hún。混合讀 hùn。" },
-        { word: "豁", context: "豁達", pinyin: "huò", options: ["huō", "huó", "guō"], note: "開通讀 huò。豁口(裂縫)讀 huō。" },
-        { word: "奇", context: "奇數", pinyin: "jī", options: ["qí", "jí", "yǐ"], note: "單數讀 jī。奇怪讀 qí。" },
-        { word: "緝", context: "通緝", pinyin: "jī", options: ["qī", "jí", "bì"], note: "捉拿讀 jī。編輯讀 jí。" },
-        { word: "藉", context: "狼藉", pinyin: "jí", options: ["jiè", "jì", "xí"], note: "雜亂讀 jí。慰藉讀 jiè。" },
-        { word: "濟", context: "人才濟濟", pinyin: "jǐ", options: ["jì", "qí", "zhì"], note: "眾多讀 jǐ。救濟讀 jì。" },
-        { word: "夾", context: "夾襖", pinyin: "jiá", options: ["jiā", "gā", "xiá"], note: "雙層衣物讀 jiá。夾子讀 jiā。" },
-        { word: "假", context: "假期", pinyin: "jià", options: ["jiǎ", "xià", "gǎ"], note: "休假讀 jià。真假讀 jiǎ。" },
-        { word: "間", context: "間隔", pinyin: "jiàn", options: ["jiān", "gān", "xián"], note: "隔開讀 jiàn。中間讀 jiān。" },
-        { word: "將", context: "將領", pinyin: "jiàng", options: ["jiāng", "qiāng", "xiáng"], note: "軍官讀 jiàng。將來讀 jiāng。" },
-        { word: "嚼", context: "嚼舌", pinyin: "jiáo", options: ["jué", "jiào", "zuǐ"], note: "口語咀嚼讀 jiáo。咀嚼(書面)讀 jué。" },
-        { word: "角", context: "角色", pinyin: "jué", options: ["jiǎo", "jú", "jià"], note: "身分讀 jué。角落讀 jiǎo。" },
-        { word: "校", context: "校對", pinyin: "jiào", options: ["xiào", "xiāo", "jiāo"], note: "訂正讀 jiào。學校讀 xiào。" },
-        { word: "結", context: "結實", pinyin: "jiē", options: ["jié", "jī", "xié"], note: "堅固/長果實讀 jiē。結網讀 jié。" },
-        { word: "禁", context: "情不自禁", pinyin: "jīn", options: ["jìn", "jīng", "qín"], note: "忍受讀 jīn。禁止讀 jìn。" },
-        { word: "勁", context: "剛勁", pinyin: "jìng", options: ["jìn", "jīng", "gēng"], note: "強有力讀 jìng。幹勁讀 jìn。" },
-        { word: "卷", context: "試卷", pinyin: "juàn", options: ["juǎn", "quān", "xuàn"], note: "紙卷/考卷讀 juàn。捲起讀 juǎn。" },
-        { word: "圈", context: "豬圈", pinyin: "juàn", options: ["quān", "juān", "quán"], note: "養獸欄讀 juàn。圓圈讀 quān。" },
-        { word: "覺", context: "睡覺", pinyin: "jiào", options: ["jué", "jiāo", "gào"], note: "睡眠讀 jiào。覺得讀 jué。" },
-        { word: "矩", context: "規矩", pinyin: "jǔ", options: ["jù", "qū", "kè"], note: "三聲！勿讀 '巨'。" },
-        { word: "菌", context: "細菌", pinyin: "jūn", options: ["jùn", "qūn", "yún"], note: "一聲！(jùn用於菌子-蘑菇)。" },
-
-        // --- K to M ---
-        { word: "卡", context: "關卡", pinyin: "qiǎ", options: ["kǎ", "qiā", "gǎ"], note: "守衛處/夾住讀 qiǎ。卡片讀 kǎ。" },
-        { word: "看", context: "看守", pinyin: "kān", options: ["kàn", "hān", "kāng"], note: "守護/監視讀 kān。看見讀 kàn。" },
-        { word: "殼", context: "地殼", pinyin: "qiào", options: ["ké", "qià", "hú"], note: "地球表層讀 qiào。貝殼讀 ké。" },
-        { word: "空", context: "空閒", pinyin: "kòng", options: ["kōng", "kǒng", "hōng"], note: "閒暇/空缺讀 kòng。天空讀 kōng。" },
-        { word: "潰", context: "潰爛", pinyin: "kuì", options: ["guì", "kuài", "huì"], note: "四聲。勿讀 guì。" },
-        { word: "累", context: "積累", pinyin: "lěi", options: ["lèi", "léi", "lè"], note: "堆積讀 lěi。勞累讀 lèi。" },
-        { word: "累", context: "果實纍纍", pinyin: "léi", options: ["lěi", "lèi", "lè"], note: "繁多下垂貌讀 léi。" },
-        { word: "勒", context: "勒緊", pinyin: "lēi", options: ["lè", "lā", "lài"], note: "用力拉緊讀 lēi。勒索讀 lè。" },
-        { word: "擂", context: "擂台", pinyin: "lèi", options: ["léi", "lēi", "lěi"], note: "比武台讀 lèi。擂鼓(敲打)讀 léi。" },
-        { word: "量", context: "測量", pinyin: "liáng", options: ["liàng", "liǎng", "niáng"], note: "度量(動詞)讀 liáng。力量/數量讀 liàng。" },
-        { word: "撩", context: "撩起", pinyin: "liāo", options: ["liáo", "liào", "liǎo"], note: "掀起/提書讀 liāo。撩撥(挑弄)讀 liáo。" },
-        { word: "咧", context: "大大咧咧", pinyin: "liē", options: ["liě", "liè", "lià"], note: "隨便貌讀 liē。咧嘴讀 liě。" },
-        { word: "籠", context: "籠罩", pinyin: "lǒng", options: ["lóng", "lōng", "nóng"], note: "覆蓋讀 lǒng。籠子讀 lóng。" },
-        { word: "露", context: "露馬腳", pinyin: "lòu", options: ["lù", "lóu", "lào"], note: "顯現(口語)讀 lòu。露水/顯露(書面)讀 lù。" },
-        { word: "落", context: "丟三落四", pinyin: "là", options: ["luò", "lào", "luō"], note: "遺漏/忘記讀 là。降落讀 luò。落枕讀 lào。" },
-        { word: "率", context: "效率", pinyin: "lǜ", options: ["shuài", "suài", "lù"], note: "比率讀 lǜ。率領讀 shuài。" },
-        { word: "綠", context: "綠林好漢", pinyin: "lù", options: ["lǜ", "lùn", "liù"], note: "山林(指強盜)讀 lù。綠色讀 lǜ。" },
-        { word: "埋", context: "埋怨", pinyin: "mán", options: ["mái", "lí", "ái"], note: "讀 mán。埋葬讀 mái。" },
-        { word: "蔓", context: "蔓延", pinyin: "màn", options: ["wàn", "mán", "mǎn"], note: "滋長讀 màn。瓜蔓讀 wàn。" },
-        { word: "脈", context: "脈脈含情", pinyin: "mò", options: ["mài", "mó", "bó"], note: "眼神含情讀 mò。脈搏讀 mài。" },
-        { word: "沒", context: "沒收", pinyin: "mò", options: ["méi", "muò", "bó"], note: "扣收/淹沒讀 mò。沒有讀 méi。" },
-        { word: "蒙", context: "啟蒙", pinyin: "méng", options: ["mēng", "měng", "móng"], note: "教導/遮蓋讀 méng。欺騙讀 mēng。" },
-        { word: "模", context: "模樣", pinyin: "mú", options: ["mó", "mò", "mù"], note: "樣子讀 mú。模型/模範讀 mó。" },
-        { word: "抹", context: "拐彎抹角", pinyin: "mò", options: ["mǒ", "mā", "mò"], note: "繞行讀 mò。塗抹讀 mǒ。抹布讀 mā。" },
-
-        // --- N to Q ---
-        { word: "難", context: "災難", pinyin: "nàn", options: ["nán", "nuò", "luàn"], note: "災禍讀 nàn。困難讀 nán。" },
-        { word: "寧", context: "寧可", pinyin: "nìng", options: ["níng", "nīng", "lìng"], note: "情願讀 nìng。安寧讀 níng。" },
-        { word: "弄", context: "弄堂", pinyin: "lòng", options: ["nòng", "nèng", "lōng"], note: "巷子讀 lòng。玩弄讀 nòng。" },
-        { word: "瘧", context: "瘧疾", pinyin: "nüè", options: ["yào", "niè", "xuè"], note: "勿讀 yào。" },
-        { word: "噴", context: "噴香", pinyin: "pèn", options: ["pēn", "fēn", "bèn"], note: "形容香氣濃讀 pèn。噴水讀 pēn。" },
-        { word: "片", context: "相片", pinyin: "piàn", options: ["piān", "biàn", "pàn"], note: "圖片/切片讀 piàn。片子(口語)有時讀 piān，但 PSC 建議讀 piàn。" },
-        { word: "漂", context: "漂白", pinyin: "piǎo", options: ["piāo", "piào", "biāo"], note: "用水洗淨讀 piǎo。漂亮讀 piào。漂浮讀 piāo。" },
-        { word: "撇", context: "撇開", pinyin: "piē", options: ["piě", "biē", "pié"], note: "拋開讀 piē。撇嘴/筆畫讀 piě。" },
-        { word: "仆", context: "前仆後繼", pinyin: "pū", options: ["pú", "bǔ", "fù"], note: "向前跌倒讀 pū。僕人讀 pú。" },
-        { word: "脯", context: "胸脯", pinyin: "pú", options: ["fǔ", "bǔ", "pǔ"], note: "胸部讀 pú。肉乾(果脯)讀 fǔ。" },
-        { word: "曝", context: "一曝十寒", pinyin: "pù", options: ["bào", "pò", "bú"], note: "曬讀 pù。勿讀 bào。" },
-        { word: "棲", context: "兩棲", pinyin: "qī", options: ["xī", "qì", "jī"], note: "勿讀 xī。" },
-        { word: "蹊", context: "蹊蹺", pinyin: "qī", options: ["xī", "qì", "jī"], note: "勿讀 xī。" },
-        { word: "稽", context: "稽首", pinyin: "qǐ", options: ["jī", "jiē", "kè"], note: "叩頭讀 qǐ。滑稽讀 jī。" },
-        { word: "乾", context: "乾坤", pinyin: "qián", options: ["gān", "kūn", "hán"], note: "八卦之一讀 qián。乾燥讀 gān。" },
-        { word: "強", context: "強迫", pinyin: "qiǎng", options: ["qiáng", "jiàng", "qiāng"], note: "勉強別人讀 qiǎng。" },
-        { word: "悄", context: "悄然", pinyin: "qiǎo", options: ["qiāo", "xiāo", "qiào"], note: "憂愁/寂靜貌讀 qiǎo。悄悄話讀 qiāo。" },
-        { word: "翹", context: "翹首", pinyin: "qiáo", options: ["qiào", "yáo", "jiào"], note: "抬起讀 qiáo。翹尾巴讀 qiào。" },
-        { word: "切", context: "親切", pinyin: "qiè", options: ["qiē", "qì", "cè"], note: "密合/急切讀 qiè。切割讀 qiē。" },
-        { word: "親", context: "親家", pinyin: "qìng", options: ["qīn", "qíng", "xīn"], note: "姻親讀 qìng。親熱讀 qīn。" },
-        { word: "曲", context: "歌曲", pinyin: "qǔ", options: ["qū", "quē", "gū"], note: "樂歌讀 qǔ。彎曲讀 qū。" },
-        { word: "雀", context: "家雀兒", pinyin: "qiǎo", options: ["què", "qiāo", "jiā"], note: "口語讀 qiǎo。麻雀(書面)讀 què。" },
-        
-        // --- R to T ---
-        { word: "任", context: "任姓", pinyin: "rén", options: ["rèn", "yín", "lín"], note: "姓氏讀 rén。任務讀 rèn。" },
-        { word: "散", context: "散漫", pinyin: "sǎn", options: ["sàn", "sān", "shàn"], note: "零碎/無約束讀 sǎn。解散/散步讀 sàn。" },
-        { word: "喪", context: "喪禮", pinyin: "sāng", options: ["sàng", "shāng", "zāng"], note: "死者儀式讀 sāng。喪失讀 sàng。" },
-        { word: "色", context: "掉色", pinyin: "shǎi", options: ["sè", "shà", "sāi"], note: "口語(顏色)讀 shǎi。書面(顏色)讀 sè。" },
-        { word: "塞", context: "塞車", pinyin: "sāi", options: ["sè", "sài", "zè"], note: "堵住(動詞)讀 sāi。堵塞(名詞/書面)讀 sè。" },
-        { word: "煞", context: "煞尾", pinyin: "shā", options: ["shà", "shá", "sā"], note: "結束/收束讀 shā。兇神(煞氣)讀 shà。" },
-        { word: "廈", context: "廈門", pinyin: "xià", options: ["shà", "xiá", "shā"], note: "地名讀 xià。高樓(大廈)讀 shà。" },
-        { word: "杉", context: "杉木", pinyin: "shā", options: ["shān", "sān", "xiān"], note: "木材讀 shā。杉樹讀 shān。" },
-        { word: "扇", context: "扇風", pinyin: "shān", options: ["shàn", "sān", "shāng"], note: "動詞(搖動)讀 shān。扇子讀 shàn。" },
-        { word: "折", context: "折本", pinyin: "shé", options: ["zhé", "zhē", "xié"], note: "虧損讀 shé。折斷讀 zhé。折騰讀 zhē。" },
-        { word: "舍", context: "宿舍", pinyin: "shè", options: ["shě", "sè", "xià"], note: "房屋讀 shè。捨棄/施捨讀 shě。" },
-        { word: "什", context: "什錦", pinyin: "shí", options: ["shén", "shé", "zá"], note: "多種雜湊讀 shí。什麼讀 shén。" },
-        { word: "識", context: "標識", pinyin: "zhì", options: ["shí", "zhǐ", "sì"], note: "記號讀 zhì。知識讀 shí。" },
-        { word: "似", context: "似的", pinyin: "shì", options: ["sì", "shí", "yǐ"], note: "助詞讀 shì。相似讀 sì。" },
-        { word: "說", context: "遊說", pinyin: "shuì", options: ["shuō", "yuè", "tuō"], note: "勸人聽從讀 shuì。說話讀 shuō。" },
-        { word: "數", context: "數數", pinyin: "shǔ", options: ["shù", "shuò", "sù"], note: "點算(動詞)讀 shǔ。數學/數字讀 shù。" },
-        { word: "遂", context: "半身不遂", pinyin: "suí", options: ["suì", "shuǐ", "zhú"], note: "身體麻痹讀 suí。遂願讀 suì。" },
-        { word: "踏", context: "踏實", pinyin: "tā", options: ["tà", "tá", "dá"], note: "安定(口語)讀 tā。踩踏讀 tà。" },
-        { word: "苔", context: "舌苔", pinyin: "tāi", options: ["tái", "dài", "tài"], note: "舌上垢膩讀 tāi。苔蘚讀 tái。" },
-        { word: "調", context: "調節", pinyin: "tiáo", options: ["diào", "tiǎo", "zhōu"], note: "調和讀 tiáo。調動/曲調讀 diào。" },
-        { word: "帖", context: "字帖", pinyin: "tiè", options: ["tiē", "tiě", "dié"], note: "臨摹的書本讀 tiè。請帖讀 tiě。妥帖讀 tiē。" },
-        { word: "通", context: "撲通", pinyin: "tōng", options: ["tòng", "dōng", "yòng"], note: "擬聲詞一聲。通過讀 tōng。" },
-        { word: "褪", context: "褪色", pinyin: "tuì", options: ["tùn", "tuǐ", "tuō"], note: "顏色脫落讀 tuì。袖手(褪下)讀 tùn。" },
-
-        // --- W to Z (及港人易錯單字補遺) ---
-        { word: "瓦", context: "弄瓦之喜", pinyin: "wà", options: ["wǎ", "wā", "gài"], note: "古指紡錘，生女讀 wà。瓦片讀 wǎ。" },
-        { word: "為", context: "因為", pinyin: "wèi", options: ["wéi", "wěi", "yīn"], note: "介詞讀 wèi。作為/是讀 wéi。" },
-        { word: "委", context: "虛與委蛇", pinyin: "wēi", options: ["wěi", "wèi", "yí"], note: "敷衍應酬讀 wēi yí。委託讀 wěi。" },
-        { word: "鮮", context: "鮮見", pinyin: "xiǎn", options: ["xiān", "xuǎn", "jiàn"], note: "少見讀 xiǎn。新鮮讀 xiān。" },
-        { word: "相", context: "相片", pinyin: "xiàng", options: ["xiāng", "jiāng", "sǎng"], note: "貌、看讀 xiàng。互相讀 xiāng。" },
-        { word: "省", context: "省悟", pinyin: "xǐng", options: ["shěng", "shēng", "xīng"], note: "明白讀 xǐng。省份讀 shěng。" },
-        { word: "興", context: "興奮", pinyin: "xīng", options: ["xìng", "xíng", "shēng"], note: "興盛/激動讀 xīng。高興/興趣讀 xìng。" },
-        { word: "宿", context: "一宿", pinyin: "xiǔ", options: ["sù", "xiù", "suō"], note: "量詞(夜)讀 xiǔ。宿舍讀 sù。星宿讀 xiù。" },
-        { word: "削", context: "削皮", pinyin: "xiāo", options: ["xuē", "xiào", "shuā"], note: "用刀斜切(口語)讀 xiāo。剝削(書面)讀 xuē。" },
-        { word: "血", context: "流血", pinyin: "xiě", options: ["xuè", "xuě", "xiè"], note: "口語讀 xiě。血液(書面)讀 xuè。" },
-        { word: "燕", context: "燕國", pinyin: "yān", options: ["yàn", "yán", "yāng"], note: "古國名/姓氏讀 yān。燕子讀 yàn。" },
-        { word: "殷", context: "殷紅", pinyin: "yān", options: ["yīn", "yǐn", "yàn"], note: "黑紅色讀 yān。殷切讀 yīn。" },
-        { word: "咽", context: "咽喉", pinyin: "yān", options: ["yàn", "yè", "yie"], note: "喉嚨讀 yān。吞咽讀 yàn。嗚咽讀 yè。" },
-        { word: "葉", context: "葉韻", pinyin: "xié", options: ["yè", "shi", "jia"], note: "和洽/協韻讀 xié。葉子讀 yè。" },
-        { word: "應", context: "應用", pinyin: "yìng", options: ["yīng", "yíng", "rèn"], note: "動詞/名詞讀 yìng。應該(助動詞)讀 yīng。" },
-        { word: "傭", context: "傭金", pinyin: "yòng", options: ["yōng", "rǒng", "tōng"], note: "買賣酬金讀 yòng。傭人讀 yōng。" },
-        { word: "熨", context: "熨帖", pinyin: "yù", options: ["yùn", "wèi", "yún"], note: "安適讀 yù。熨斗讀 yùn。" },
-        { word: "與", context: "參與", pinyin: "yù", options: ["yǔ", "yú", "jǔ"], note: "參加讀 yù。與其讀 yǔ。" },
-        { word: "吁", context: "氣喘吁吁", pinyin: "xū", options: ["yù", "yú", "yū"], note: "擬聲詞讀 xū。呼籲讀 yù。" },
-        { word: "暈", context: "暈車", pinyin: "yùn", options: ["yūn", "hūn", "huī"], note: "頭腦不清讀 yùn。暈倒讀 yūn。" },
-        { word: "載", context: "載重", pinyin: "zài", options: ["zǎi", "chāi", "cái"], note: "裝運讀 zài。記載/年讀 zǎi。" },
-        { word: "擇", context: "擇菜", pinyin: "zhái", options: ["zé", "zhà", "cè"], note: "剔除(口語)讀 zhái。選擇(書面)讀 zé。" },
-        { word: "扎", context: "掙扎", pinyin: "zhá", options: ["zhā", "zā", "zhà"], note: "勉強支撐讀 zhá。扎針讀 zhā。包紮讀 zā。" },
-        { word: "軋", context: "軋鋼", pinyin: "zhá", options: ["yà", "gá", "zā"], note: "滾壓讀 zhá。傾軋讀 yà。" },
-        { word: "粘", context: "粘貼", pinyin: "zhān", options: ["nián", "nān", "zi"], note: "動詞讀 zhān。形容詞(粘稠)讀 nián。" },
-        { word: "漲", context: "漲潮", pinyin: "zhǎng", options: ["zhàng", "zhāng", "cháng"], note: "水位升高讀 zhǎng。頭昏腦漲讀 zhàng。" },
-        { word: "著", context: "著急", pinyin: "zháo", options: ["zhe", "zhuó", "zhù"], note: "焦急讀 zháo。穿著讀 zhuó。走著讀 zhe。" },
-        { word: "正", context: "正月", pinyin: "zhēng", options: ["zhèng", "zheng", "jīng"], note: "農曆一月讀 zhēng。正確讀 zhèng。" },
-        { word: "只", context: "只身", pinyin: "zhī", options: ["zhǐ", "qí", "zi"], note: "單獨讀 zhī。只有讀 zhǐ。" },
-        { word: "中", context: "中獎", pinyin: "zhòng", options: ["zhōng", "zong", "cōng"], note: "射中/合乎讀 zhòng。中間讀 zhōng。" },
-        { word: "種", context: "種地", pinyin: "zhòng", options: ["zhǒng", "zǒng", "cóng"], note: "種植讀 zhòng。種類讀 zhǒng。" },
-        { word: "軸", context: "壓軸", pinyin: "zhòu", options: ["zhóu", "chōu", "yóu"], note: "戲曲最後一齣讀 zhòu。車軸讀 zhóu。" },
-        { word: "屬", context: "屬意", pinyin: "zhǔ", options: ["shǔ", "sǔ", "zǔ"], note: "專注/意向讀 zhǔ。屬於讀 shǔ。" },
-        { word: "轉", context: "轉文", pinyin: "zhuǎi", options: ["zhuǎn", "zhuàn", "chuán"], note: "賣弄文采讀 zhuǎi。轉動(繞圈)讀 zhuàn。轉變方向讀 zhuǎn。" },
-        { word: "鑽", context: "鑽石", pinyin: "zuān", options: ["zuàn", "zān", "cuan"], note: "穿孔/寶石讀 zuān。鑽頭/鑽具讀 zuàn。" },
-        { word: "作", context: "作坊", pinyin: "zuō", options: ["zuò", "zé", "zuó"], note: "工場讀 zuō。工作讀 zuò。" },
-        
-        // --- 港人常見易錯單字 (非多音字，但極易讀錯) ---
         { word: "暫", context: "暫時", pinyin: "zàn", options: ["zhàn", "zán", "chàn"], note: "四聲平舌 zàn。勿讀 zhàn。" },
         { word: "氛", context: "氣氛", pinyin: "fēn", options: ["fèn", "fēng", "pēn"], note: "一聲 fēn。勿讀 fèn。" },
         { word: "檔", context: "檔案", pinyin: "dàng", options: ["dǎng", "dāng", "tóng"], note: "四聲 dàng。勿讀 dǎng。" },
         { word: "酵", context: "發酵", pinyin: "jiào", options: ["xiào", "xiāo", "gāo"], note: "必考！讀 jiào。" },
         { word: "誼", context: "友誼", pinyin: "yì", options: ["yí", "yī", "yìng"], note: "四聲 yì。" },
-        { word: "庇", context: "庇護", pinyin: "bì", options: ["pì", "bǐ", "bēi"], note: "四聲 bì。" },
-        { word: "糙", context: "粗糙", pinyin: "cāo", options: ["zào", "cào", "zhào"], note: "一聲 cāo。" },
-        { word: "械", context: "機械", pinyin: "xiè", options: ["jiè", "jié", "xié"], note: "讀 xiè。勿讀 jiè。" },
-        { word: "仍", context: "仍然", pinyin: "réng", options: ["rēng", "rěng", "yíng"], note: "二聲 réng。" },
-        { word: "儘", context: "儘管", pinyin: "jǐn", options: ["jìn", "jīng", "qín"], note: "三聲 jǐn。儘量讀 jǐn。" },
-        { word: "幾", context: "幾乎", pinyin: "jī", options: ["jǐ", "jì", "qī"], note: "差點兒讀 jī。幾個讀 jǐ。" },
-        { word: "呈", context: "呈現", pinyin: "chéng", options: ["chěng", "zhěng", "chèng"], note: "二聲 chéng。" },
-        { word: "懲", context: "懲罰", pinyin: "chéng", options: ["chěng", "zhěng", "chèng"], note: "二聲 chéng。勿讀三聲。" },
-        { word: "乘", context: "乘客", pinyin: "chéng", options: ["chèng", "shèng", "chēng"], note: "二聲 chéng。" },
-        { word: "甚", context: "甚至", pinyin: "shèn", options: ["shèng", "sèn", "cèn"], note: "四聲 shèn。" },
-        { word: "即", context: "即使", pinyin: "jí", options: ["jì", "jǐ", "qí"], note: "二聲 jí。勿讀 jì。" },
-        { word: "識", context: "識別", pinyin: "shí", options: ["shì", "zhì", "sì"], note: "二聲 shí。標識讀 zhì。" },
-        { word: "召", context: "召開", pinyin: "zhào", options: ["zhāo", "zāo", "shào"], note: "四聲 zhào。" },
-        { word: "召", context: "號召", pinyin: "zhào", options: ["zhāo", "zāo", "shào"], note: "四聲 zhào。" },
-        { word: "卓", context: "卓越", pinyin: "zhuó", options: ["zhuō", "zhào", "chuo"], note: "二聲 zhuó。" },
-        { word: "侮", context: "侮辱", pinyin: "wǔ", options: ["wū", "rǔ", "hǔ"], note: "三聲 wǔ。" },
-        { word: "捺", context: "按捺", pinyin: "nà", options: ["nài", "nāi", "là"], note: "四聲 nà。勿讀 nài。" },
-        { word: "愎", context: "剛愎自用", pinyin: "bì", options: ["fù", "bèi", "pì"], note: "四聲 bì。" },
-        { word: "灸", context: "針灸", pinyin: "jiǔ", options: ["jiū", "jiù", "chù"], note: "三聲 jiǔ。" },
-        { word: "唾", context: "唾沫", pinyin: "tuò", options: ["chuí", "tù", "tòu"], note: "四聲 tuò。" },
-        { word: "愜", context: "愜意", pinyin: "qiè", options: ["xiá", "qià", "xiè"], note: "四聲 qiè。" },
-        { word: "塑", context: "塑膠", pinyin: "sù", options: ["suò", "sōu", "shù"], note: "四聲 sù。" },
-        { word: "搜", context: "搜尋", pinyin: "sōu", options: ["shōu", "sǒu", "xiū"], note: "一聲 sōu。" },
-        { word: "損", context: "損壞", pinyin: "sǔn", options: ["xǔn", "yǔn", "shǔn"], note: "三聲 sǔn。" },
-        { word: "詢", context: "詢問", pinyin: "xún", options: ["xùn", "shun", "yún"], note: "二聲 xún。" },
-        { word: "浸", context: "浸泡", pinyin: "jìn", options: ["qīn", "jīn", "qìn"], note: "四聲 jìn。" },
-        { word: "瀕", context: "瀕臨", pinyin: "bīn", options: ["pín", "bīng", "píng"], note: "一聲 bīn。" },
-        { word: "糾", context: "糾正", pinyin: "jiū", options: ["jiǎo", "jiù", "gōu"], note: "一聲 jiū。勿讀 jiǎo。" },
-        { word: "某", context: "某人", pinyin: "mǒu", options: ["móu", "mǔ", "méi"], note: "三聲 mǒu。謀求讀 móu。" },
-        { word: "括", context: "包括", pinyin: "kuò", options: ["guā", "kuó", "guō"], note: "四聲 kuò。" },
-        { word: "質", context: "質量", pinyin: "zhì", options: ["zhǐ", "zī", "jí"], note: "四聲 zhì。" },
-        { word: "罰", context: "懲罰", pinyin: "fá", options: ["fà", "fǎ", "huá"], note: "二聲 fá。" },
-        { word: "潛", context: "潛能", pinyin: "qián", options: ["qiǎn", "jiān", "zàn"], note: "二聲 qián。" },
-        { word: "署", context: "簽署", pinyin: "shǔ", options: ["shù", "chǔ", "sǔ"], note: "三聲 shǔ。" },
-        { word: "遂", context: "遂願", pinyin: "suì", options: ["suí", "shuǐ", "zhú"], note: "四聲 suì。" },
-        { word: "溯", context: "追溯", pinyin: "sù", options: ["shuò", "suò", "sū"], note: "四聲 sù。" },
-        { word: "冗", context: "冗長", pinyin: "rǒng", options: ["yǒng", "ròng", "kàng"], note: "三聲 rǒng。" },
-        { word: "詣", context: "造詣", pinyin: "yì", options: ["zhǐ", "yí", "jì"], note: "四聲 yì。" },
-        { word: "卓", context: "卓見", pinyin: "zhuó", options: ["zhuō", "zhào", "chuo"], note: "二聲 zhuó。" },
-        { word: "綻", context: "綻放", pinyin: "zhàn", options: ["dìng", "dian", "zhān"], note: "四聲 zhàn。" },
-        { word: "貯", context: "貯藏", pinyin: "zhù", options: ["chǔ", "zhǔ", "níng"], note: "四聲 zhù。" },
-        { word: "滓", context: "渣滓", pinyin: "zǐ", options: ["zǎi", "zhǐ", "zī"], note: "三聲 zǐ。" }
+        { word: "庇", context: "包庇", pinyin: "bì", options: ["pì", "bìng", "pī"], note: "四聲 bì。" },
+        { word: "瀕", context: "瀕臨", pinyin: "bīn", options: ["pín", "bīng", "pīn"], note: "一聲 bīn。勿讀 pín。" },
+        { word: "稱", context: "稱職", pinyin: "chèn", options: ["chēng", "chèng", "cèn"], note: "合適讀 chèn。稱讚讀 chēng。" },
+        { word: "乘", context: "千乘之國", pinyin: "shèng", options: ["chéng", "chèng", "shēng"], note: "古量詞(車)讀 shèng。乘車讀 chéng。" },
+        { word: "弄", context: "弄堂", pinyin: "lòng", options: ["nòng", "nèng", "lōng"], note: "巷子讀 lòng。玩弄讀 nòng。" },
+        { word: "強", context: "強迫", pinyin: "qiǎng", options: ["qiáng", "jiàng", "qiāng"], note: "勉強別人讀 qiǎng。" },
+        { word: "給", context: "給予", pinyin: "jǐ", options: ["gěi", "yǔ", "jí"], note: "書面語/供應讀 jǐ。給你(口語)讀 gěi。" },
+        { word: "處", context: "處分", pinyin: "chǔ", options: ["chù", "cǔ", "shù"], note: "動詞(處置)讀 chǔ。地方讀 chù。" },
+        { word: "差", context: "出差", pinyin: "chāi", options: ["chā", "chà", "cī"], note: "派遣讀 chāi。差別讀 chā。" },
+        { word: "校", context: "校對", pinyin: "jiào", options: ["xiào", "xiāo", "jiāo"], note: "訂正讀 jiào。學校讀 xiào。" },
+        { word: "創", context: "創傷", pinyin: "chuāng", options: ["chuàng", "cāng", "shuāng"], note: "傷口讀 chuāng。創造讀 chuàng。" },
+        { word: "潛", context: "潛水", pinyin: "qián", options: ["qiǎn", "jiān", "zàn"], note: "二聲！勿讀三聲。" },
+        { word: "框", context: "門框", pinyin: "kuàng", options: ["kuāng", "guāng", "kāng"], note: "四聲！勿讀一聲。" },
+        { word: "咯", context: "咯血", pinyin: "kǎ", options: ["luò", "gē", "lo"], note: "咯(kǎ)血，勿讀 luò。" },
+        { word: "掄", context: "掄拳頭", pinyin: "lūn", options: ["lún", "lùn", "qiǎng"], note: "一聲！" },
+        { word: "韋", context: "韋氏", pinyin: "wéi", options: ["wěi", "huì", "wēi"], note: "二聲！勿讀三聲，姓氏。" },
+        { word: "膝", context: "膝蓋", pinyin: "xī", options: ["qī", "xí", "yì"], note: "勿讀 '七'。" },
+        { word: "穴", context: "穴位", pinyin: "xué", options: ["xuè", "xuě", "kōng"], note: "二聲！勿讀四聲。" },
+        { word: "亞", context: "亞洲", pinyin: "yà", options: ["yǎ", "à", "yā"], note: "四聲！廣東人常誤讀三聲。" },
+        { word: "咱", context: "咱們", pinyin: "zán", options: ["zá", "zā", "zhán"], note: "二聲！" },
+        { word: "綻", context: "破綻", pinyin: "zhàn", options: ["dìng", "dian", "zhān"], note: "勿讀 '定'。" },
+        { word: "脂", context: "脂肪", pinyin: "zhī", options: ["zhǐ", "zī", "zhì"], note: "一聲！勿讀三聲。" },
+        { word: "貯", context: "貯存", pinyin: "zhù", options: ["chǔ", "zhǔ", "níng"], note: "四聲！勿讀三聲。" },
+        { word: "綜", context: "綜合", pinyin: "zōng", options: ["zòng", "cōng", "zhōng"], note: "一聲！勿讀四聲。" },
+        { word: "否", context: "否極泰來", pinyin: "pǐ", options: ["fǒu", "bì", "pī"], note: "壞運氣到頭讀 pǐ。" },
+        { word: "答", context: "答應", pinyin: "dā", options: ["dá", "tā", "dà"], note: "應允讀 dā。回答讀 dá。" },
+        { word: "殼", context: "地殼", pinyin: "qiào", options: ["ké", "qià", "hú"], note: "地球表層讀 qiào。貝殼讀 ké。" }
+        // *** 這裡可以繼續添加更多題目 ***
     ];
 
     // ==========================================
-    // 2. 星空背景邏輯 (Canvas)
+    // 2. 智能數據庫管理 (Local Storage)
     // ==========================================
-    const canvas = document.getElementById('star-canvas');
-    const ctx = canvas.getContext('2d');
-    let stars = [];
+    const STORAGE_KEY = 'psc_mastery_v2'; // 版本號控制
 
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        initStars();
+    // 獲取數據
+    function getStoredData() {
+        const data = localStorage.getItem(STORAGE_KEY);
+        return data ? JSON.parse(data) : {};
     }
 
-    function initStars() {
-        stars = [];
-        const starCount = 100;
-        for (let i = 0; i < starCount; i++) {
-            stars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                radius: Math.random() * 1.5,
-                alpha: Math.random(),
-                speed: Math.random() * 0.05
-            });
+    // 保存數據 (智能判斷邏輯)
+    function saveAnswerResult(word, context, isCorrect) {
+        let stats = getStoredData();
+        const key = `${word}_${context}`; // 唯一標識符
+
+        if (!stats[key]) {
+            stats[key] = { 
+                streak: 0,      // 連續答對次數
+                wrongCount: 0,  // 歷史錯誤總數
+                lastWrong: 0    // 最後一次答錯的時間戳(可用於遺忘曲線算法，此處暫簡化)
+            };
+        }
+
+        if (isCorrect) {
+            stats[key].streak += 1;
+        } else {
+            stats[key].streak = 0; // 一旦做錯，連對清零
+            stats[key].wrongCount += 1;
+            stats[key].lastWrong = Date.now();
+        }
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+    }
+
+    // 計算總體掌握度
+    function calculateMastery() {
+        const stats = getStoredData();
+        let masteredCount = 0;
+
+        fullQuestionBank.forEach(item => {
+            const key = `${item.word}_${item.context}`;
+            if (stats[key] && stats[key].streak >= 3) {
+                masteredCount++;
+            }
+        });
+
+        return {
+            mastered: masteredCount,
+            total: fullQuestionBank.length,
+            percent: Math.round((masteredCount / fullQuestionBank.length) * 100)
+        };
+    }
+
+    // 重置所有數據
+    function resetAllData() {
+        if(confirm("確定要刪除所有學習進度和錯題記錄嗎？此操作無法撤銷。")) {
+            localStorage.removeItem(STORAGE_KEY);
+            alert("已重置！請重新開始。");
+            initGame();
         }
     }
 
-    function drawStars() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        stars.forEach(star => {
-            ctx.beginPath();
-            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
-            ctx.fill();
-            star.alpha += star.speed;
-            if (star.alpha > 1 || star.alpha < 0.2) star.speed = -star.speed;
-        });
-        requestAnimationFrame(drawStars);
-    }
-
     // ==========================================
-    // 3. 遊戲邏輯 (Logic)
+    // 3. 遊戲核心邏輯
     // ==========================================
     let currentQuestions = [];
     let currentIndex = 0;
     let score = 0;
     let canAnswer = true;
-    let answeredHistory = []; 
+    let sessionMistakes = []; // 本局錯題
 
+    // 洗牌
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -575,43 +415,102 @@
         return array;
     }
 
+    // 🌟 智能選題算法 🌟
+    function selectQuestions() {
+        const stats = getStoredData();
+        
+        let errorPool = [];    // 復仇池：曾經錯過且未掌握
+        let newPool = [];      // 新題池：沒做過或 streak < 3
+        let masteredPool = []; // 宗師池：streak >= 3
+
+        fullQuestionBank.forEach(item => {
+            const key = `${item.word}_${item.context}`;
+            const record = stats[key];
+
+            if (record) {
+                if (record.streak >= 3) {
+                    masteredPool.push(item);
+                } else if (record.streak < 3 && record.wrongCount > 0) {
+                    errorPool.push(item);
+                } else {
+                    newPool.push(item); // 做過但沒錯過，還沒到3次
+                }
+            } else {
+                newPool.push(item); // 全新題
+            }
+        });
+
+        // 優先級排序：錯題 > 新題 > 已掌握題
+        let selected = [];
+
+        // 1. 優先塞入錯題 (最多取10題，避免挫敗感太強)
+        shuffleArray(errorPool);
+        selected = selected.concat(errorPool.slice(0, 10));
+
+        // 2. 補足新題
+        if (selected.length < 20) {
+            shuffleArray(newPool);
+            const need = 20 - selected.length;
+            selected = selected.concat(newPool.slice(0, need));
+        }
+
+        // 3. 還是不夠？那複習一下已掌握的 (防止遺忘)
+        if (selected.length < 20) {
+            shuffleArray(masteredPool);
+            const need = 20 - selected.length;
+            selected = selected.concat(masteredPool.slice(0, need));
+        }
+
+        // 再次打亂題目順序，避免錯題總是堆在開頭
+        return shuffleArray(selected.slice(0, 20));
+    }
+
+    // 初始化遊戲
     function initGame() {
+        // 重置變量
         currentIndex = 0;
         score = 0;
-        answeredHistory = [];
+        sessionMistakes = [];
+        canAnswer = true;
+
+        // 切換界面
         document.getElementById('game-screen').style.display = 'block';
         document.getElementById('result-screen').style.display = 'none';
+
+        // 抽取題目
+        currentQuestions = selectQuestions();
         
-        // 隨機選 20 題
-        const shuffled = shuffleArray([...fullQuestionBank]);
-        currentQuestions = shuffled.slice(0, 20);
-        
+        // 防呆：如果題庫為空
+        if (currentQuestions.length === 0) {
+            alert("題庫為空！請檢查代碼中的 fullQuestionBank 數組。");
+            return;
+        }
+
         renderQuestion();
     }
 
+    // 渲染題目
     function renderQuestion() {
-        document.getElementById('next-btn').style.display = 'none';
-        document.getElementById('feedback-text').innerHTML = '';
-        canAnswer = true;
+        // 進度條更新
+        const progressPercent = (currentIndex / currentQuestions.length) * 100;
+        document.getElementById('session-progress').style.width = `${progressPercent}%`;
 
+        // 檢查是否結束
         if (currentIndex >= currentQuestions.length) {
             endGame();
             return;
         }
 
         const q = currentQuestions[currentIndex];
-        const progressPercent = (currentIndex / 20) * 100;
+
+        // 顯示文字 (高亮)
+        const displayHtml = q.context.replace(q.word, `<span class="target-char">${q.word}</span>`);
+        document.getElementById('question-word').innerHTML = displayHtml;
+
+        // 清空舊狀態
+        document.getElementById('feedback-box').innerHTML = '<div id="feedback-text"></div>';
         
-        document.getElementById('progress').style.width = `${progressPercent}%`;
-        
-        // --- 核心邏輯：顯示語境詞並高亮目標字 ---
-        const displayDiv = document.getElementById('question-word');
-        // 使用 replace 將目標字替換為帶 span 的高亮版本
-        // 注意：只替換第一個匹配到的字，避免重複
-        const highlightedContext = q.context.replace(q.word, `<span class="target-char">${q.word}</span>`);
-        displayDiv.innerHTML = highlightedContext;
-        
-        // 準備選項
+        // 生成選項
         let options = [q.pinyin, ...q.options];
         options = shuffleArray(options);
 
@@ -622,103 +521,170 @@
             const btn = document.createElement('button');
             btn.className = 'option-btn';
             btn.textContent = opt;
-            btn.onclick = () => handleAnswer(opt, q);
+            btn.onclick = () => handleAnswer(opt, q, btn);
             container.appendChild(btn);
         });
+
+        canAnswer = true;
     }
 
-    function handleAnswer(selected, question) {
+    // 處理點擊
+    function handleAnswer(selected, question, btnElement) {
         if (!canAnswer) return;
         canAnswer = false;
 
-        const buttons = document.querySelectorAll('.option-btn');
-        let isCorrect = selected === question.pinyin;
+        const isCorrect = selected === question.pinyin;
+        const feedbackBox = document.getElementById('feedback-box');
+        
+        // 記錄數據到 LocalStorage
+        saveAnswerResult(question.word, question.context, isCorrect);
 
-        buttons.forEach(btn => {
+        // 視覺反饋
+        const allBtns = document.querySelectorAll('.option-btn');
+        allBtns.forEach(btn => {
             if (btn.textContent === question.pinyin) {
                 btn.classList.add('correct');
             } else if (btn.textContent === selected && !isCorrect) {
                 btn.classList.add('wrong');
             }
-            btn.disabled = true; 
+            btn.disabled = true;
         });
 
-        const feedbackDiv = document.getElementById('feedback-text');
         if (isCorrect) {
             score++;
-            feedbackDiv.innerHTML = `<span style="color:var(--success-color); font-weight:bold;">✅ 答對了！</span>`;
+            feedbackBox.innerHTML = `<div id="feedback-text" style="color:var(--success-color); font-weight:bold; font-size:20px;">✅ 回答正確！</div>`;
+            setTimeout(() => {
+                currentIndex++;
+                renderQuestion();
+            }, 800); // 0.8秒後自動下一題
         } else {
-            feedbackDiv.innerHTML = `<span style="color:var(--accent-color); font-weight:bold;">❌ 答錯了！應讀：${question.pinyin}</span>`;
-        }
-        
-        if (question.note) {
-            feedbackDiv.innerHTML += `<span class="feedback-note">💡 ${question.note}</span>`;
-        }
+            // 記錄本局錯題
+            sessionMistakes.push({
+                word: question.word,
+                context: question.context,
+                pinyin: question.pinyin,
+                wrong: selected
+            });
 
-        answeredHistory.push({
-            context: question.context,
-            word: question.word,
-            pinyin: question.pinyin,
-            note: question.note,
-            isCorrect: isCorrect
-        });
-
-        document.getElementById('next-btn').style.display = 'block';
+            feedbackBox.innerHTML = `
+                <div id="feedback-text">
+                    <span style="color:var(--accent-color); font-weight:bold; font-size:20px;">❌ 錯誤！</span>
+                    ${question.note ? `<br><span class="feedback-note">💡 專家提示：${question.note}</span>` : ''}
+                </div>
+                <button class="btn-next-q" onclick="forceNext()">👉 下一題</button>
+            `;
+            document.querySelector('.btn-next-q').style.display = 'inline-block';
+        }
     }
 
-    function nextQuestion() {
+    function forceNext() {
         currentIndex++;
         renderQuestion();
     }
 
+    // 遊戲結算
     function endGame() {
         document.getElementById('game-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
-        
-        const finalScore = score * 5;
+
+        const totalQ = currentQuestions.length;
+        const finalScore = Math.round((score / totalQ) * 100);
+
+        // 更新本局分數顯示
         const scoreCircle = document.getElementById('final-score');
         const evalText = document.getElementById('eval-text');
         
         scoreCircle.textContent = finalScore;
-        
+
         if (finalScore >= 90) {
-            scoreCircle.style.borderColor = "#27ae60"; scoreCircle.style.color = "#27ae60";
+            scoreCircle.style.borderColor = "#2ecc71";
             evalText.innerHTML = "<strong>一級乙等水平！</strong><br>語感極佳，請保持。";
         } else if (finalScore >= 80) {
-            scoreCircle.style.borderColor = "#2980b9"; scoreCircle.style.color = "#2980b9";
-            evalText.innerHTML = "<strong>二級甲等水平！</strong><br>已達教師基準。";
+            scoreCircle.style.borderColor = "#3498db";
+            evalText.innerHTML = "<strong>二級甲等水平！</strong><br>已達標，注意微細錯誤。";
         } else {
-            scoreCircle.style.borderColor = "#e74c3c"; scoreCircle.style.color = "#e74c3c";
-            evalText.innerHTML = "<strong>需加強多音字練習。</strong>";
+            scoreCircle.style.borderColor = "#e74c3c";
+            evalText.innerHTML = "<strong>需加強訓練！</strong><br>錯題已加入優先複習隊列。";
         }
 
+        // ============================
+        // 🌟 新增：計算總體進度 🌟
+        // ============================
+        const masteryStats = calculateMastery();
+        document.getElementById('mastery-percentage').textContent = `${masteryStats.percent}%`;
+        document.getElementById('mastery-count-text').textContent = `已精通 ${masteryStats.mastered} / ${masteryStats.total} 字 (連對3次以上)`;
+        // 動畫顯示進度條
+        setTimeout(() => {
+            document.getElementById('mastery-bar-fill').style.width = `${masteryStats.percent}%`;
+        }, 300);
+
+        // 生成錯題列表
         const reviewContainer = document.getElementById('review-container');
-        let html = "";
-        answeredHistory.forEach(item => {
-            // 在回顧中也高亮目標字
-            const highlightedContext = item.context.replace(item.word, `<span class="review-target">${item.word}</span>`);
-            const statusIcon = item.isCorrect ? "✅" : "❌";
-            html += `
-                <div class="review-item">
-                    <div>${statusIcon} <span class="review-context">${highlightedContext}</span> 
-                    <span style="color:#f1c40f; font-weight:bold; margin-left:10px;">${item.pinyin}</span></div>
-                    <div style="font-size:13px; color:#95a5a6; margin-top:4px; padding-left:24px;">${item.note}</div>
-                </div>
-            `;
-        });
-        reviewContainer.innerHTML = html;
+        reviewContainer.innerHTML = '';
+
+        if (sessionMistakes.length === 0) {
+            reviewContainer.innerHTML = '<div style="padding:15px; color:#bdc3c7;">🎉 太棒了！本局全對！</div>';
+        } else {
+            sessionMistakes.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'review-item';
+                div.innerHTML = `
+                    <span class="review-context">${item.context.replace(item.word, `<span style="color:var(--highlight-color)">${item.word}</span>`)}</span>
+                    <br>
+                    <span style="color:#7f8c8d; font-size:14px;">
+                        誤讀: <span style="color:var(--accent-color)">${item.wrong}</span> 
+                        → 正音: <span style="color:var(--success-color)">${item.pinyin}</span>
+                    </span>
+                `;
+                reviewContainer.appendChild(div);
+            });
+        }
     }
 
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    drawStars();
-    initGame();
+    // 星空背景動畫
+    function initStars() {
+        const canvas = document.getElementById('star-canvas');
+        if(!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        let stars = [];
+        for(let i=0; i<60; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                radius: Math.random() * 1.5,
+                alpha: Math.random(),
+                speed: Math.random() * 0.05
+            });
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(star => {
+                ctx.globalAlpha = star.alpha;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI*2);
+                ctx.fill();
+                star.y -= star.speed;
+                if(star.y < 0) {
+                    star.y = canvas.height;
+                    star.x = Math.random() * canvas.width;
+                }
+            });
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+    // 啟動
+    window.onload = () => {
+        initStars();
+        initGame();
+    };
 
 </script>
-
 </body>
 </html>
-
-
-
-
