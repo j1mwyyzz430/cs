@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSC 智能語境辨音特訓 (純拼音高難度版)</title>
+    <title>PSC 智能語境辨音特訓 (最終完美版)</title>
     <style>
         /* ==================== 
-           1. 視覺風格設置 (保持深空護眼模式)
+           1. 視覺風格設置 (深空護眼模式)
            ==================== */
         :root {
             --bg-color: #0f1319;       
@@ -234,7 +234,7 @@
 
 <div class="container">
     <div id="game-screen">
-        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">PSC 語境辨音特訓 | 純拼音高難度版</div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">PSC 語境辨音特訓 | 深度解析版</div>
         <div style="font-size: 16px; color: var(--highlight-color); margin-bottom: 15px;">
             請選出<span style="border-bottom: 2px solid var(--highlight-color);">黃色字</span>的正確讀音
         </div>
@@ -285,7 +285,7 @@
 
 <script>
     // ==========================================
-    // 1. 核心題庫 (純拼音干擾修正版)
+    // 1. 核心題庫 (純拼音高難度版)
     // ==========================================
     const fullQuestionBank = [
         // --- 原始基礎題 ---
@@ -351,7 +351,7 @@
         { word: "畜", context: "畜牧", pinyin: "xù", options: ["chù", "chuu", "zī"], note: "飼養讀 xù。牲畜讀 chù。" },
         { word: "創", context: "重創", pinyin: "chuāng", options: ["chuàng", "cāng", "shuāng"], note: "創傷讀 chuāng。創造讀 chuàng。" },
         { word: "伺", context: "伺候", pinyin: "cì", options: ["sì", "shì", "cī"], note: "服侍讀 cì。窺探(伺機)讀 sì。" },
-        { word: "逮", context: "逮老鼠", pinyin: "dǎi", options: ["dài", "tài", "dì"], note: "口語捉拿讀 dǎi。逮捕(書面)讀 dài。" },
+        { word: "逮", context: "逮老鼠", pinyin: "dǎi", options: ["dài", "tài", "dāi"], note: "口語捉拿讀 dǎi。逮捕(書面)讀 dài。" },
         { word: "當", context: "當真", pinyin: "dàng", options: ["dāng", "tāng", "dǎng"], note: "認為/作為讀 dàng。應當讀 dāng。" },
         { word: "倒", context: "倒水", pinyin: "dào", options: ["dǎo", "tào", "dāo"], note: "傾出讀 dào。跌倒讀 dǎo。" },
         { word: "度", context: "揣度", pinyin: "duó", options: ["dù", "duō", "tù"], note: "推測讀 duó。程度讀 dù。" },
@@ -664,7 +664,7 @@
     // ==========================================
     // 2. 智能數據庫管理
     // ==========================================
-    const STORAGE_KEY = 'psc_mastery_v3'; // 更新版本號
+    const STORAGE_KEY = 'psc_mastery_v4'; 
 
     function getStoredData() {
         const data = localStorage.getItem(STORAGE_KEY);
@@ -864,14 +864,18 @@
             statusHtml = `<div style="color:var(--accent-color); font-weight:bold; font-size:20px;">❌ 錯誤！</div>`;
         }
 
+        // --- 優化部分：判斷是否為最後一題 ---
+        const isLastQuestion = currentIndex === currentQuestions.length - 1;
+        const nextBtnText = isLastQuestion ? "📊 查看成績" : "👉 下一題";
+        const nextBtnAction = "forceNext()";
+
         // 構建完整反饋（包含 Note 和 按鈕）
-        // 無論對錯，都顯示 Note 和 按鈕
         feedbackBox.innerHTML = `
             <div id="feedback-text">
                 ${statusHtml}
                 ${question.note ? `<br><span class="feedback-note">💡 專家提示：${question.note}</span>` : ''}
             </div>
-            <button class="btn-next-q" style="display:inline-block" onclick="forceNext()">👉 下一題</button>
+            <button class="btn-next-q" style="display:inline-block" onclick="${nextBtnAction}">${nextBtnText}</button>
         `;
     }
 
