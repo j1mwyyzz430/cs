@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PSC 智能語境辨音特訓 (最終完美版)</title>
+    <title>PSC 雲端智能特訓系統 (240+完整題庫版)</title>
     <style>
         /* ==================== 
-           1. 視覺風格設置 (深空護眼模式)
+           視覺風格設置 (深空護眼模式)
            ==================== */
         :root {
             --bg-color: #0f1319;       
@@ -17,6 +17,7 @@
             --success-color: #2ecc71;  
             --highlight-color: #f1c40f; 
             --btn-next: #d35400;       
+            --btn-login: #3498db;
         }
 
         body {
@@ -41,200 +42,149 @@
             z-index: -1;
         }
 
+        /* 登錄界面 */
+        #login-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .login-box {
+            background: #2c3e50; padding: 40px; border-radius: 12px;
+            width: 300px; text-align: center;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+        }
+        .login-input {
+            width: 88%; padding: 12px; margin: 10px 0;
+            background: #34495e; border: 1px solid #7f8c8d;
+            color: white; border-radius: 5px; font-size: 16px;
+        }
+        .btn-login {
+            width: 100%; padding: 12px; margin-top: 20px;
+            background: var(--btn-login); color: white; border: none;
+            border-radius: 5px; font-size: 18px; cursor: pointer; transition: 0.3s;
+        }
+        .btn-login:hover { background: #2980b9; }
+        .btn-login:disabled { background: #95a5a6; cursor: not-allowed; }
+
+        /* 遊戲主體 */
         .container {
             background-color: var(--card-bg);
             backdrop-filter: blur(10px);
             border-radius: 16px;
             box-shadow: 0 0 40px rgba(0,0,0,0.6);
-            width: 90%;
-            max-width: 650px;
-            padding: 40px;
-            text-align: center;
+            width: 90%; max-width: 650px;
+            padding: 40px; text-align: center;
             border: 1px solid rgba(255,255,255,0.1);
-            position: relative;
-            z-index: 10;
+            position: relative; z-index: 10;
+            display: none; /* 登錄後顯示 */
         }
 
-        .progress-container {
-            width: 100%;
-            margin-bottom: 20px;
+        .status-bar {
+            position: absolute; top: 15px; right: 20px; 
+            font-size: 12px; color: #7f8c8d; display: flex; align-items: center; gap: 10px;
         }
-        .progress-bar-bg {
-            width: 100%;
-            height: 6px;
-            background-color: #2c3e50;
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            background-color: var(--highlight-color);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
+
+        .progress-container { width: 100%; margin-bottom: 20px; margin-top: 10px; }
+        .progress-bar-bg { width: 100%; height: 6px; background-color: #2c3e50; border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background-color: var(--highlight-color); width: 0%; transition: width 0.3s ease; }
 
         .word-display {
-            font-size: 50px;
-            font-weight: bold;
-            margin: 20px 0 40px 0;
-            color: #fff;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-            letter-spacing: 2px;
-            min-height: 70px;
+            font-size: 50px; font-weight: bold; margin: 20px 0 40px 0;
+            color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            letter-spacing: 2px; min-height: 70px;
         }
+        .target-char { color: var(--highlight-color); border-bottom: 4px solid var(--highlight-color); padding-bottom: 5px; display: inline-block; }
 
-        .target-char {
-            color: var(--highlight-color);
-            font-size: 65px;
-            border-bottom: 4px solid var(--highlight-color);
-            padding-bottom: 5px;
-            display: inline-block;
-        }
-
-        .options-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         button.option-btn {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 2px solid #576574;
-            color: var(--text-primary);
-            border-radius: 12px;
-            padding: 15px;
-            font-size: 22px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: Arial, sans-serif;
+            background-color: rgba(255, 255, 255, 0.05); border: 2px solid #576574;
+            color: var(--text-primary); border-radius: 12px; padding: 15px;
+            font-size: 22px; cursor: pointer; transition: all 0.2s; font-family: Arial, sans-serif;
         }
+        button.option-btn:hover:not(:disabled) { border-color: var(--text-primary); background-color: rgba(255, 255, 255, 0.15); transform: translateY(-2px); }
+        button.option-btn.correct { background-color: var(--success-color); border-color: var(--success-color); color: #fff; box-shadow: 0 0 15px rgba(46, 204, 113, 0.4); }
+        button.option-btn.wrong { background-color: var(--accent-color); border-color: var(--accent-color); color: #fff; opacity: 0.6; }
 
-        button.option-btn:hover:not(:disabled) {
-            border-color: var(--text-primary);
-            background-color: rgba(255, 255, 255, 0.15);
-            transform: translateY(-2px);
-        }
-
-        button.option-btn.correct {
-            background-color: var(--success-color);
-            border-color: var(--success-color);
-            color: #fff;
-            box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
-        }
-
-        button.option-btn.wrong {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-            color: #fff;
-            opacity: 0.6;
-        }
-
-        .feedback-area {
-            min-height: 100px;
-            margin-top: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-
+        .feedback-area { min-height: 100px; margin-top: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .feedback-note {
-            color: #81a1c1;
-            font-size: 16px;
-            margin-top: 8px;
-            display: block;
-            background: rgba(0,0,0,0.3);
-            padding: 10px 20px;
-            border-radius: 8px;
-            line-height: 1.5;
-            max-width: 95%;
+            color: #81a1c1; font-size: 16px; margin-top: 8px; display: block;
+            background: rgba(0,0,0,0.3); padding: 10px 20px; border-radius: 8px;
+            line-height: 1.5; max-width: 95%;
         }
 
         .btn-next-q {
-            background-color: var(--btn-next);
-            color: white;
-            border: none;
-            padding: 12px 40px;
-            font-size: 18px;
-            border-radius: 50px;
-            cursor: pointer;
-            margin-top: 15px;
-            display: none; 
-            box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4);
-            animation: popIn 0.3s ease;
+            background-color: var(--btn-next); color: white; border: none;
+            padding: 12px 40px; font-size: 18px; border-radius: 50px;
+            cursor: pointer; margin-top: 15px; display: inline-block;
+            box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4); animation: popIn 0.3s ease;
         }
         .btn-next-q:hover { background-color: #e67e22; }
-
         @keyframes popIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+        /* 結算與統計 */
         .result-screen { display: none; }
-        
         .score-circle {
-            width: 140px; height: 140px;
-            border-radius: 50%;
-            border: 6px solid var(--success-color);
+            width: 140px; height: 140px; border-radius: 50%; border: 6px solid var(--success-color);
             display: flex; justify-content: center; align-items: center;
-            font-size: 48px; font-weight: bold;
-            margin: 0 auto 20px;
-            color: var(--text-primary);
+            font-size: 48px; font-weight: bold; margin: 0 auto 20px; color: var(--text-primary);
         }
-
         .mastery-stats-box {
-            background: rgba(255,255,255,0.05);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            text-align: left;
+            background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px;
+            margin: 20px 0; text-align: left;
         }
-        .mastery-label {
-            display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #bdc3c7;
-        }
-        .mastery-bar {
-            height: 10px; background: #34495e; border-radius: 5px; overflow: hidden;
-        }
-        .mastery-fill {
-            height: 100%; background: linear-gradient(90deg, #f1c40f, #2ecc71); width: 0%; transition: width 1s ease-out;
-        }
-        .mastery-details {
-            margin-top: 10px; font-size: 13px; color: #7f8c8d; text-align: center;
-        }
+        .mastery-label { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #bdc3c7; }
+        .mastery-bar { height: 10px; background: #34495e; border-radius: 5px; overflow: hidden; }
+        .mastery-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #2ecc71); width: 0%; transition: width 1s ease-out; }
+        .mastery-details { margin-top: 10px; font-size: 13px; color: #7f8c8d; text-align: center; }
 
         .review-list {
-            text-align: left;
-            max-height: 250px;
-            overflow-y: auto;
-            margin: 20px 0;
-            padding-right: 10px;
-            border-top: 1px solid #34495e;
+            text-align: left; max-height: 200px; overflow-y: auto; margin: 20px 0;
+            padding-right: 10px; border-top: 1px solid #34495e;
         }
-        .review-item {
-            padding: 12px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.05);
-            font-size: 16px;
-        }
-        
+        .review-item { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 16px; }
         .btn-restart {
-            background-color: #2980b9; color: white; border: none;
-            padding: 15px 40px; border-radius: 8px; font-size: 18px; cursor: pointer;
-            margin-top: 10px;
-            width: 100%;
+            background-color: #2980b9; color: white; border: none; padding: 15px 40px;
+            border-radius: 8px; font-size: 18px; cursor: pointer; margin-top: 10px; width: 100%;
         }
         .btn-restart:hover { background-color: #3498db; }
+
+        /* Spinner for sync */
+        .spinner {
+            display: inline-block; width: 12px; height: 12px;
+            border: 2px solid #fff; border-top-color: transparent;
+            border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #1a252f; }
         ::-webkit-scrollbar-thumb { background: #34495e; border-radius: 4px; }
-
     </style>
 </head>
 <body>
 
 <canvas id="star-canvas"></canvas>
 
-<div class="container">
+<div id="login-overlay">
+    <div class="login-box">
+        <h2 style="margin-top:0; color:#fff;">PSC 雲端特訓</h2>
+        <div style="font-size:12px; color:#bdc3c7; margin-bottom:20px;">請輸入 Sheet 中設定的帳密<br>(預設: admin / 123456)</div>
+        <input type="text" id="username" class="login-input" placeholder="用戶名 (Username)">
+        <input type="password" id="password" class="login-input" placeholder="密碼 (Password)">
+        <button class="btn-login" onclick="handleLogin()" id="login-btn">登錄系統</button>
+        <div id="login-msg" style="color:#e74c3c; margin-top:10px; font-size:14px; min-height:20px;"></div>
+    </div>
+</div>
+
+<div class="container" id="game-container">
+    
+    <div class="status-bar">
+        <span>👤 <span id="display-user" style="color:var(--highlight-color)">Guest</span></span>
+        <span id="sync-status"></span>
+    </div>
+
     <div id="game-screen">
-        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">PSC 語境辨音特訓 | 深度解析版</div>
+        <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 5px;">PSC 語境辨音 | 雲端智能出題</div>
         <div style="font-size: 16px; color: var(--highlight-color); margin-bottom: 15px;">
             請選出<span style="border-bottom: 2px solid var(--highlight-color);">黃色字</span>的正確讀音
         </div>
@@ -258,37 +208,42 @@
         <h2 style="color:#fff; margin-top:0;">特訓結束</h2>
         
         <div class="score-circle" id="final-score">0</div>
-        <p id="eval-text" style="color:#bdc3c7; margin-bottom: 15px;">...</p>
+        <p style="color:#bdc3c7; font-size:14px;">數據已同步至雲端數據庫</p>
         
         <div class="mastery-stats-box">
             <div class="mastery-label">
-                <span>總題庫掌握度 (連續答對3次)</span>
+                <span>我的雲端掌握度</span>
                 <span id="mastery-percentage">0%</span>
             </div>
             <div class="mastery-bar">
                 <div class="mastery-fill" id="mastery-bar-fill"></div>
             </div>
             <div class="mastery-details" id="mastery-count-text">
-                已精通 0 / 236 字
+                加載中...
             </div>
         </div>
 
         <div style="text-align:left; color:#f1c40f; font-size:14px; margin-top:15px;">
-            📝 本局錯題回顧 (已加入復仇清單)：
+            📝 本局錯題 (下局優先出現)：
         </div>
         <div class="review-list" id="review-container"></div>
         
         <button class="btn-restart" onclick="initGame()">再來一局 (優先複習錯題) 🔄</button>
-        <button style="background:transparent; border:none; color:#576574; font-size:12px; margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="resetAllData()">⚠️ 重置所有學習記錄</button>
+        <button style="background:transparent; border:none; color:#576574; font-size:12px; margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="location.reload()">🚪 登出 / 切換帳號</button>
     </div>
 </div>
 
 <script>
     // ==========================================
-    // 1. 核心題庫 (純拼音高難度版)
+    // 🔴 🔴 🔴 CONFIG: https://script.google.com/macros/s/AKfycbwhcnKJoyh7Z-JZXlZlXXfv92oCMRP-MpX3lNPa2aEiQ_smqdHl0nVLn3Zr0aGXaeRZ2A/exec 🔴 🔴 🔴
+    // ==========================================
+    const API_URL = "在此處填入你的_Google_Web_App_URL"; 
+    // 例如: "https://script.google.com/macros/s/AKfycbx.../exec"
+
+    // ==========================================
+    // 1. 核心題庫 (240+ 題，純拼音選項)
     // ==========================================
     const fullQuestionBank = [
-        // --- 原始基礎題 ---
         { word: "阿", context: "阿姨", pinyin: "ā", options: ["ē", "a", "á"], note: "稱呼常用 ā。阿膠讀 ē。" },
         { word: "阿", context: "阿膠", pinyin: "ē", options: ["ā", "a", "á"], note: "藥名讀 ē。" },
         { word: "挨", context: "挨近", pinyin: "āi", options: ["ái", "ài", "ā"], note: "靠近讀 āi (一聲)。" },
@@ -325,8 +280,6 @@
         { word: "否", context: "否極泰來", pinyin: "pǐ", options: ["fǒu", "bì", "pī"], note: "壞運氣到頭讀 pǐ。" },
         { word: "答", context: "答應", pinyin: "dā", options: ["dá", "tā", "dà"], note: "應允讀 dā。回答讀 dá。" },
         { word: "殼", context: "地殼", pinyin: "qiào", options: ["ké", "qià", "hú"], note: "地球表層讀 qiào。貝殼讀 ké。" },
-
-        // --- 擴充庫 (已替換所有粵拼干擾項) ---
         { word: "艾", context: "方興未艾", pinyin: "ài", options: ["yì", "āi", "wěi"], note: "形容事物蓬勃發展讀 ài。自怨自艾讀 yì。" },
         { word: "拗", context: "拗不過", pinyin: "niù", options: ["ào", "ǎo", "yòu"], note: "固執/不順從讀 niù。折斷讀 ǎo。" },
         { word: "柏", context: "柏樹", pinyin: "bǎi", options: ["bó", "bò", "bái"], note: "樹名讀 bǎi。德國柏林讀 bó。" },
@@ -661,70 +614,85 @@
         { word: "剖", context: "解剖", pinyin: "pōu", options: ["pāo", "pū", "pǒu"], note: "一聲 pōu。勿讀 pāo。" }
     ];
 
-    // ==========================================
-    // 2. 智能數據庫管理
-    // ==========================================
-    const STORAGE_KEY = 'psc_mastery_v4'; 
-
-    function getStoredData() {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : {};
-    }
-
-    function saveAnswerResult(word, context, isCorrect) {
-        let stats = getStoredData();
-        const key = `${word}_${context}`; 
-
-        if (!stats[key]) {
-            stats[key] = { streak: 0, wrongCount: 0, lastWrong: 0 };
-        }
-
-        if (isCorrect) {
-            stats[key].streak += 1;
-        } else {
-            stats[key].streak = 0; 
-            stats[key].wrongCount += 1;
-            stats[key].lastWrong = Date.now();
-        }
-
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
-    }
-
-    function calculateMastery() {
-        const stats = getStoredData();
-        let masteredCount = 0;
-
-        fullQuestionBank.forEach(item => {
-            const key = `${item.word}_${item.context}`;
-            if (stats[key] && stats[key].streak >= 3) {
-                masteredCount++;
-            }
-        });
-
-        return {
-            mastered: masteredCount,
-            total: fullQuestionBank.length,
-            percent: Math.round((masteredCount / fullQuestionBank.length) * 100)
-        };
-    }
-
-    function resetAllData() {
-        if(confirm("確定要刪除所有學習進度和錯題記錄嗎？")) {
-            localStorage.removeItem(STORAGE_KEY);
-            alert("已重置！");
-            initGame();
-        }
-    }
-
-    // ==========================================
-    // 3. 遊戲核心邏輯
-    // ==========================================
+    let currentUser = "";
     let currentQuestions = [];
     let currentIndex = 0;
     let score = 0;
+    let cloudMistakes = [];
+    let cloudMastered = [];
     let canAnswer = true;
     let sessionMistakes = []; 
 
+    // --- 登錄與網絡 ---
+    function handleLogin() {
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value.trim();
+        const btn = document.getElementById('login-btn');
+        const msg = document.getElementById('login-msg');
+
+        if(!user || !pass) { msg.textContent = "請輸入完整帳號密碼"; return; }
+        if(API_URL.includes("Google_Web_App_URL")) { alert("請先在代碼中填入你的 Google Web App URL！"); return; }
+
+        btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> 驗證中...`; msg.textContent = "";
+
+        fetch(API_URL, {
+            method: 'POST', mode: 'no-cors',
+            body: JSON.stringify({ action: "login", username: user, password: pass })
+        }).then(() => {
+            currentUser = user;
+            msg.textContent = "登錄成功，正在同步雲端記憶...";
+            fetchCloudProfile();
+        }).catch(err => {
+            msg.textContent = "連接失敗，請檢查網絡"; btn.disabled = false; btn.textContent = "登錄系統";
+        });
+    }
+
+    // 2. 獲取用戶錯題畫像
+    function fetchCloudProfile() {
+        fetch(API_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: "get_profile", username: currentUser })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("雲端數據:", data);
+            cloudMistakes = data.mistakes || [];
+            cloudMastered = data.mastered || [];
+            
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('display-user').textContent = currentUser;
+            initGame();
+        })
+        .catch(err => {
+            console.error("同步失敗", err);
+            // 失敗也允許進入，但無法優先錯題
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('game-container').style.display = 'block';
+            document.getElementById('display-user').textContent = currentUser;
+            initGame();
+        });
+    }
+
+    function uploadRecord(question, userChoice, isCorrect) {
+        const statusSpan = document.getElementById('sync-status');
+        statusSpan.innerHTML = '<span class="spinner"></span>';
+
+        fetch(API_URL, {
+            method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({
+                action: "save_record", username: currentUser,
+                word: question.word, context: question.context,
+                userChoice: userChoice, correctPinyin: question.pinyin,
+                isCorrect: isCorrect
+            })
+        }).then(() => {
+            statusSpan.innerHTML = "✅";
+            setTimeout(() => { statusSpan.innerHTML = ""; }, 2000);
+        }).catch(err => { statusSpan.innerHTML = "⚠️"; });
+    }
+
+    // --- 遊戲邏輯 ---
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -734,250 +702,158 @@
     }
 
     function selectQuestions() {
-        const stats = getStoredData();
-        
-        let errorPool = [];    
-        let newPool = [];      
-        let masteredPool = []; 
+        let errorPool = [], newPool = [], masteredPool = [];
 
         fullQuestionBank.forEach(item => {
-            const key = `${item.word}_${item.context}`;
-            const record = stats[key];
-
-            if (record) {
-                if (record.streak >= 3) {
-                    masteredPool.push(item);
-                } else if (record.streak < 3 && record.wrongCount > 0) {
-                    errorPool.push(item);
-                } else {
-                    newPool.push(item); 
-                }
+            const key = item.word + "_" + item.context;
+            if (cloudMistakes.includes(key)) {
+                errorPool.push(item);
+            } else if (cloudMastered.includes(key)) {
+                masteredPool.push(item);
             } else {
-                newPool.push(item); 
+                newPool.push(item);
             }
         });
 
         let selected = [];
-
-        shuffleArray(errorPool);
-        selected = selected.concat(errorPool.slice(0, 10));
-
-        if (selected.length < 20) {
-            shuffleArray(newPool);
-            const need = 20 - selected.length;
-            selected = selected.concat(newPool.slice(0, need));
+        // 優先錯題
+        shuffleArray(errorPool); 
+        selected = selected.concat(errorPool.slice(0, 10)); 
+        
+        // 補足新題
+        if (selected.length < 20) { 
+            shuffleArray(newPool); 
+            selected = selected.concat(newPool.slice(0, 20 - selected.length)); 
         }
-
-        if (selected.length < 20) {
-            shuffleArray(masteredPool);
-            const need = 20 - selected.length;
-            selected = selected.concat(masteredPool.slice(0, need));
+        
+        // 補足已掌握題
+        if (selected.length < 20) { 
+            shuffleArray(masteredPool); 
+            selected = selected.concat(masteredPool.slice(0, 20 - selected.length)); 
         }
-
+        
         return shuffleArray(selected.slice(0, 20));
     }
 
     function initGame() {
-        currentIndex = 0;
-        score = 0;
-        sessionMistakes = [];
-        canAnswer = true;
-
+        currentIndex = 0; score = 0; sessionMistakes = [];
         document.getElementById('game-screen').style.display = 'block';
         document.getElementById('result-screen').style.display = 'none';
-
-        currentQuestions = selectQuestions();
         
-        if (currentQuestions.length === 0) {
-            alert("題庫為空！請檢查代碼。");
-            return;
-        }
-
+        currentQuestions = selectQuestions();
+        if (currentQuestions.length === 0) { alert("題庫異常！"); return; }
         renderQuestion();
     }
 
     function renderQuestion() {
-        const progressPercent = (currentIndex / currentQuestions.length) * 100;
-        document.getElementById('session-progress').style.width = `${progressPercent}%`;
-
-        if (currentIndex >= currentQuestions.length) {
-            endGame();
-            return;
-        }
-
-        const q = currentQuestions[currentIndex];
-
-        const displayHtml = q.context.replace(q.word, `<span class="target-char">${q.word}</span>`);
-        document.getElementById('question-word').innerHTML = displayHtml;
-
-        // 清空反饋區域，隱藏按鈕
-        document.getElementById('feedback-box').innerHTML = '<div id="feedback-text"></div>';
+        if (currentIndex >= currentQuestions.length) { endGame(); return; }
         
+        const q = currentQuestions[currentIndex];
+        document.getElementById('session-progress').style.width = `${(currentIndex / currentQuestions.length) * 100}%`;
+        document.getElementById('question-word').innerHTML = q.context.replace(q.word, `<span class="target-char">${q.word}</span>`);
+        document.getElementById('feedback-box').innerHTML = '';
+
         let options = [q.pinyin, ...q.options];
         options = shuffleArray(options);
 
         const container = document.getElementById('options-container');
         container.innerHTML = '';
-
         options.forEach(opt => {
             const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.textContent = opt;
+            btn.className = 'option-btn'; btn.textContent = opt;
             btn.onclick = () => handleAnswer(opt, q, btn);
             container.appendChild(btn);
         });
-
         canAnswer = true;
     }
 
-    function handleAnswer(selected, question, btnElement) {
-        if (!canAnswer) return;
-        canAnswer = false;
-
-        const isCorrect = selected === question.pinyin;
-        const feedbackBox = document.getElementById('feedback-box');
+    function handleAnswer(selected, question, btn) {
+        if (!canAnswer) return; canAnswer = false;
         
-        saveAnswerResult(question.word, question.context, isCorrect);
+        const isCorrect = selected === question.pinyin;
+        if (isCorrect) score++;
+        
+        // 上傳並更新本地狀態 (模擬即時反饋)
+        uploadRecord(question, selected, isCorrect);
+        const key = question.word + "_" + question.context;
+        if (!isCorrect && !cloudMistakes.includes(key)) cloudMistakes.push(key);
 
         const allBtns = document.querySelectorAll('.option-btn');
-        allBtns.forEach(btn => {
-            if (btn.textContent === question.pinyin) {
-                btn.classList.add('correct');
-            } else if (btn.textContent === selected && !isCorrect) {
-                btn.classList.add('wrong');
-            }
-            btn.disabled = true;
+        allBtns.forEach(b => {
+            if (b.textContent === question.pinyin) b.classList.add('correct');
+            else if (b.textContent === selected && !isCorrect) b.classList.add('wrong');
+            b.disabled = true;
         });
 
-        // 準備反饋標題
-        let statusHtml = '';
-        if (isCorrect) {
-            score++;
-            statusHtml = `<div style="color:var(--success-color); font-weight:bold; font-size:20px;">✅ 回答正確！</div>`;
-        } else {
-            sessionMistakes.push({
-                word: question.word,
-                context: question.context,
-                pinyin: question.pinyin,
-                wrong: selected
-            });
-            statusHtml = `<div style="color:var(--accent-color); font-weight:bold; font-size:20px;">❌ 錯誤！</div>`;
+        // 生成反饋與按鈕
+        let statusHtml = isCorrect ? 
+            `<div style="color:var(--success-color); font-weight:bold; font-size:20px;">✅ 回答正確！</div>` : 
+            `<div style="color:var(--accent-color); font-weight:bold; font-size:20px;">❌ 錯誤！</div>`;
+        
+        if (!isCorrect) {
+            sessionMistakes.push({ word: question.word, context: question.context, pinyin: question.pinyin, wrong: selected });
         }
 
-        // --- 優化部分：判斷是否為最後一題 ---
-        const isLastQuestion = currentIndex === currentQuestions.length - 1;
-        const nextBtnText = isLastQuestion ? "📊 查看成績" : "👉 下一題";
-        const nextBtnAction = "forceNext()";
+        const isLast = currentIndex === currentQuestions.length - 1;
+        const btnText = isLast ? "📊 查看成績" : "👉 下一題";
 
-        // 構建完整反饋（包含 Note 和 按鈕）
-        feedbackBox.innerHTML = `
-            <div id="feedback-text">
-                ${statusHtml}
-                ${question.note ? `<br><span class="feedback-note">💡 專家提示：${question.note}</span>` : ''}
-            </div>
-            <button class="btn-next-q" style="display:inline-block" onclick="${nextBtnAction}">${nextBtnText}</button>
+        document.getElementById('feedback-box').innerHTML = `
+            <div id="feedback-text">${statusHtml}${question.note ? `<br><span class="feedback-note">💡 ${question.note}</span>` : ''}</div>
+            <button class="btn-next-q" onclick="forceNext()">${btnText}</button>
         `;
     }
 
-    function forceNext() {
-        currentIndex++;
-        renderQuestion();
-    }
+    function forceNext() { currentIndex++; renderQuestion(); }
 
     function endGame() {
         document.getElementById('game-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
-
-        const totalQ = currentQuestions.length;
-        const finalScore = Math.round((score / totalQ) * 100);
-
-        const scoreCircle = document.getElementById('final-score');
-        const evalText = document.getElementById('eval-text');
         
-        scoreCircle.textContent = finalScore;
+        const total = currentQuestions.length;
+        document.getElementById('final-score').textContent = Math.round((score/total)*100);
 
-        if (finalScore >= 90) {
-            scoreCircle.style.borderColor = "#2ecc71";
-            evalText.innerHTML = "<strong>一級乙等水平！</strong><br>語感極佳，請保持。";
-        } else if (finalScore >= 80) {
-            scoreCircle.style.borderColor = "#3498db";
-            evalText.innerHTML = "<strong>二級甲等水平！</strong><br>已達標，注意微細錯誤。";
-        } else {
-            scoreCircle.style.borderColor = "#e74c3c";
-            evalText.innerHTML = "<strong>需加強訓練！</strong><br>錯題已加入優先複習隊列。";
-        }
+        // 更新掌握度UI
+        const pct = Math.round((cloudMastered.length / fullQuestionBank.length) * 100);
+        document.getElementById('mastery-percentage').textContent = `${pct}%`;
+        document.getElementById('mastery-bar-fill').style.width = `${pct}%`;
+        document.getElementById('mastery-count-text').textContent = `已精通 ${cloudMastered.length} / ${fullQuestionBank.length} 字`;
 
-        const masteryStats = calculateMastery();
-        document.getElementById('mastery-percentage').textContent = `${masteryStats.percent}%`;
-        document.getElementById('mastery-count-text').textContent = `已精通 ${masteryStats.mastered} / ${masteryStats.total} 字 (連對3次以上)`;
-        setTimeout(() => {
-            document.getElementById('mastery-bar-fill').style.width = `${masteryStats.percent}%`;
-        }, 300);
-
-        const reviewContainer = document.getElementById('review-container');
-        reviewContainer.innerHTML = '';
-
-        if (sessionMistakes.length === 0) {
-            reviewContainer.innerHTML = '<div style="padding:15px; color:#bdc3c7;">🎉 太棒了！本局全對！</div>';
-        } else {
+        // 錯題回顧
+        const container = document.getElementById('review-container');
+        container.innerHTML = '';
+        if (sessionMistakes.length === 0) container.innerHTML = '<div style="padding:15px; color:#bdc3c7;">🎉 太棒了！本局全對！</div>';
+        else {
             sessionMistakes.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'review-item';
-                div.innerHTML = `
-                    <span class="review-context">${item.context.replace(item.word, `<span style="color:var(--highlight-color)">${item.word}</span>`)}</span>
-                    <br>
-                    <span style="color:#7f8c8d; font-size:14px;">
-                        誤讀: <span style="color:var(--accent-color)">${item.wrong}</span> 
-                        → 正音: <span style="color:var(--success-color)">${item.pinyin}</span>
-                    </span>
-                `;
-                reviewContainer.appendChild(div);
+                div.innerHTML = `<span style="color:white">${item.context}</span> <span style="color:#7f8c8d; font-size:14px;">(誤讀: <span style="color:var(--accent-color)">${item.wrong}</span> → 正音: <span style="color:var(--success-color)">${item.pinyin}</span>)</span>`;
+                container.appendChild(div);
             });
         }
     }
 
+    // 星空特效
     function initStars() {
         const canvas = document.getElementById('star-canvas');
         if(!canvas) return;
         const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        
-        let stars = [];
-        for(let i=0; i<60; i++) {
-            stars.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                radius: Math.random() * 1.5,
-                alpha: Math.random(),
-                speed: Math.random() * 0.05
-            });
-        }
-
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        let stars = Array.from({length: 60}, () => ({
+            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+            radius: Math.random() * 1.5, alpha: Math.random(), speed: Math.random() * 0.05
+        }));
         function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white";
+            ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "white";
             stars.forEach(star => {
-                ctx.globalAlpha = star.alpha;
-                ctx.beginPath();
-                ctx.arc(star.x, star.y, star.radius, 0, Math.PI*2);
-                ctx.fill();
-                star.y -= star.speed;
-                if(star.y < 0) {
-                    star.y = canvas.height;
-                    star.x = Math.random() * canvas.width;
-                }
+                ctx.globalAlpha = star.alpha; ctx.beginPath(); ctx.arc(star.x, star.y, star.radius, 0, Math.PI*2); ctx.fill();
+                star.y -= star.speed; if(star.y < 0) { star.y = canvas.height; star.x = Math.random() * canvas.width; }
             });
             requestAnimationFrame(draw);
         }
         draw();
     }
 
-    window.onload = () => {
-        initStars();
-        initGame();
-    };
-
+    window.onload = initStars;
 </script>
 </body>
 </html>
