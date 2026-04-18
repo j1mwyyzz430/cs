@@ -1,656 +1,465 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-HK">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>普通話水平測試 (智能雲端版)</title>
+    <title>2F 班級獎勵系統</title>
     <style>
         :root {
-            --primary-color: #3498db;
-            --accent-color: #e74c3c;
-            --success-color: #2ecc71;
-            --bg-color: #0b0c10;
-            --text-color: #c5c6c7;
-            --card-bg: #1f2833;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --text-main: #2d3748;
+            --star-color: #fbbf24;
+            --star-empty: #e2e8f0;
+            --btn-hover: #edf2f7;
         }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
         body {
-            margin: 0; padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            overflow-x: hidden;
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            padding: 10px;
         }
-        #star-canvas {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
+
+        /* 頂部控制列 */
+        .header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 60px;
+            gap: 15px;
+            margin-bottom: 10px;
         }
-        .container {
-            background: rgba(31, 40, 51, 0.9);
-            padding: 2rem; border-radius: 15px;
-            box-shadow: 0 0 20px rgba(102, 252, 241, 0.2);
-            width: 90%; max-width: 500px;
-            text-align: center;
-            backdrop-filter: blur(5px);
-            border: 1px solid #45a29e;
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+            margin-right: 20px;
         }
-        #login-overlay input {
-            display: block; width: 80%; margin: 10px auto; padding: 10px;
-            border-radius: 5px; border: 1px solid #45a29e;
-            background: #0b0c10; color: white;
+
+        .global-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.1s, background 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        button {
-            background: linear-gradient(45deg, #45a29e, #66fcf1);
-            border: none; padding: 12px 24px; color: #0b0c10;
-            font-weight: bold; border-radius: 25px; cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            margin-top: 10px; font-size: 16px;
+        .global-btn:active { transform: scale(0.9); }
+        .global-btn svg { width: 24px; height: 24px; }
+        .btn-add-all svg { fill: #48bb78; }
+        .btn-sub-all svg { fill: #f56565; }
+
+        /* 學生網格 5x5 */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            grid-template-rows: repeat(5, 1fr);
+            gap: 10px;
+            flex: 1;
+            min-height: 0;
         }
-        button:hover { transform: scale(1.05); box-shadow: 0 0 15px #66fcf1; }
-        button:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
-        .progress-bar {
-            width: 100%; height: 6px; background: #45a29e33;
-            margin-bottom: 20px; border-radius: 3px; overflow: hidden;
+
+        .student-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.2s;
+            position: relative;
         }
-        .progress-fill { height: 100%; background: #66fcf1; width: 0%; transition: width 0.3s; }
-        .word-display { font-size: 2.5rem; margin: 20px 0; font-weight: bold; letter-spacing: 2px; }
-        .target-char { color: #66fcf1; text-shadow: 0 0 10px #45a29e; border-bottom: 2px solid #45a29e; }
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
-        .option-btn {
-            background: rgba(69, 162, 158, 0.2); border: 1px solid #45a29e; color: white;
-            font-size: 1.2rem; padding: 15px;
+        .student-card:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transform: translateY(-2px);
         }
-        .option-btn:hover { background: rgba(69, 162, 158, 0.5); }
-        .option-btn.correct { background: var(--success-color) !important; border-color: var(--success-color); }
-        .option-btn.wrong { background: var(--accent-color) !important; border-color: var(--accent-color); }
-        .review-item {
-            background: rgba(0,0,0,0.3); padding: 8px; margin: 5px 0;
-            border-radius: 5px; text-align: left; border-left: 3px solid var(--accent-color);
+        .student-card:active { transform: scale(0.98); }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
         }
-        .spinner {
-            display: inline-block; width: 12px; height: 12px;
-            border: 2px solid rgba(255,255,255,0.3); border-radius: 50%;
-            border-top-color: white; animation: spin 1s ease-in-out infinite;
+
+        .student-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-main);
+            line-height: 1.2;
+            pointer-events: none;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .mastery-container { margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
-        .mastery-bar { width: 100%; height: 8px; background: #333; border-radius: 4px; overflow: hidden; margin: 5px 0; }
-        .mastery-fill { height: 100%; background: linear-gradient(90deg, #f1c40f, #f39c12); width: 0%; transition: width 1s; }
+
+        .big-stars {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 2px;
+            max-width: 40%;
+            pointer-events: none;
+        }
+        .big-star-icon {
+            color: #ff3b30;
+            font-size: 14px;
+            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+        }
+
+        .card-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 5px;
+        }
+
+        .small-stars {
+            display: flex;
+            gap: 2px;
+            pointer-events: none;
+        }
+        
+        .star {
+            width: 14px;
+            height: 14px;
+            fill: var(--star-empty);
+            transition: fill 0.2s;
+        }
+        .star.filled {
+            fill: var(--star-color);
+        }
+        /* 將動畫獨立出來，只加在剛獲得的星星上 */
+        .star.pop-anim {
+            animation: pop 0.3s ease-out;
+        }
+
+        .btn-minus {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        .btn-minus:hover { background: var(--btn-hover); }
+        .btn-minus svg { width: 16px; height: 16px; fill: #a0aec0; }
+
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.5); }
+            100% { transform: scale(1); }
+        }
+
+        #confetti-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 9999;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+        }
+        
+        /* 載入提示 */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: none;
+            z-index: 10000;
+        }
     </style>
 </head>
 <body>
 
-<canvas id="star-canvas"></canvas>
-
-<div class="container">
-    <div id="login-overlay">
-        <h2>🚀 拼音挑戰登錄</h2>
-        <input type="text" id="username" placeholder="你的名字 (ID)">
-        <input type="password" id="password" placeholder="密碼 (任意字符)">
-        <button id="login-btn" onclick="handleLogin()">登錄系統</button>
-        <p id="login-msg" style="color: #e74c3c; margin-top: 10px;"></p>
+    <div class="header">
+        <div class="header-title">2F 班級獎勵表</div>
+        
+        <button class="global-btn btn-add-all" onclick="addAll()" title="全班加分">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+        </button>
+        <button class="global-btn btn-sub-all" onclick="subAll()" title="全班扣分">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11H7v-2h10v2z"/></svg>
+        </button>
     </div>
 
-    <div id="game-container" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <span style="font-size: 0.9rem; color:#888;">學員: <strong id="display-user" style="color:white;">--</strong></span>
-            <span id="sync-status" style="font-size: 1.2rem;"></span>
-        </div>
+    <div class="grid-container" id="grid"></div>
+    <div id="confetti-container"></div>
+    <div id="toast">資料已自動載入</div>
 
-        <div id="game-screen">
-            <div class="progress-bar"><div class="progress-fill" id="session-progress"></div></div>
-            <div class="word-display" id="question-word">載入中...</div>
-            <div class="options-grid" id="options-container"></div>
-            <div id="feedback-box"></div>
-        </div>
-
-        <div id="result-screen" style="display: none;">
-            <h2>🎯 本局結算</h2>
-            <div style="font-size: 3rem; font-weight: bold; color: #66fcf1;">
-                <span id="final-score">0</span><span style="font-size: 1.5rem">%</span>
-            </div>
-            
-            <div class="mastery-container">
-                <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
-                    <span>總體精通度</span>
-                    <span id="mastery-percentage">0%</span>
-                </div>
-                <div class="mastery-bar"><div class="mastery-fill" id="mastery-bar-fill"></div></div>
-                <div id="mastery-count-text" style="font-size: 0.8rem; color: #888; margin-top: 5px;"></div>
-            </div>
-
-            <h3>錯題回顧</h3>
-            <div id="review-container" style="max-height: 200px; overflow-y: auto;"></div>
-            
-            <button onclick="initGame()" style="width: 100%; margin-top: 20px;">再來一局 🔄</button>
-        </div>
-    </div>
-</div>
-
-<script>
-    // ==========================================
-    // 🔴 🔴 🔴 重要：請填入你的 Web App URL 🔴 🔴 🔴
-    // ==========================================
-    // 請將下方的網址替換為你從 Google Apps Script 部署獲得的網址 (以 https://script.google.com 開頭)
-    const API_URL = "https://script.google.com/macros/s/AKfycbwhcnKJoyh7Z-JZXlZlXXfv92oCMRP-MpX3lNPa2aEiQ_smqdHl0nVLn3Zr0aGXaeRZ2A/exec"; 
-
-    // ==========================================
-    // 1. 完整題庫 (已修復並去重)
-    // ==========================================
-    // 注意：這裡使用 let 宣告，允許後續去重覆蓋
-    let fullQuestionBank = [
-        { word: "阿", context: "阿姨", pinyin: "ā", options: ["ē", "a", "á"], note: "稱呼常用 ā。阿膠讀 ē。" },
-        { word: "阿", context: "阿膠", pinyin: "ē", options: ["ā", "a", "á"], note: "藥名讀 ē。" },
-        { word: "挨", context: "挨近", pinyin: "āi", options: ["ái", "ài", "ā"], note: "靠近讀 āi (一聲)。" },
-        { word: "挨", context: "挨打", pinyin: "ái", options: ["āi", "ài", "à"], note: "受苦/拖延讀 ái (二聲)。" },
-        { word: "暫", context: "暫時", pinyin: "zàn", options: ["zhàn", "zán", "chàn"], note: "四聲平舌 zàn。勿讀 zhàn。" },
-        { word: "氛", context: "氣氛", pinyin: "fēn", options: ["fèn", "fēng", "pēn"], note: "一聲 fēn。勿讀 fèn。" },
-        { word: "檔", context: "檔案", pinyin: "dàng", options: ["dǎng", "dāng", "tóng"], note: "四聲 dàng。勿讀 dǎng。" },
-        { word: "酵", context: "發酵", pinyin: "jiào", options: ["xiào", "xiāo", "gāo"], note: "必考！讀 jiào。" },
-        { word: "誼", context: "友誼", pinyin: "yì", options: ["yí", "yī", "yìng"], note: "四聲 yì。" },
-        { word: "庇", context: "包庇", pinyin: "bì", options: ["pì", "bìng", "pī"], note: "四聲 bì。" },
-        { word: "瀕", context: "瀕臨", pinyin: "bīn", options: ["pín", "bīng", "pīn"], note: "一聲 bīn。勿讀 pín。" },
-        { word: "稱", context: "稱職", pinyin: "chèn", options: ["chēng", "chèng", "cèn"], note: "合適讀 chèn。稱讚讀 chēng。" },
-        { word: "乘", context: "千乘之國", pinyin: "shèng", options: ["chéng", "chèng", "shēng"], note: "古量詞(車)讀 shèng。乘車讀 chéng。" },
-        { word: "弄", context: "弄堂", pinyin: "lòng", options: ["nòng", "nèng", "lōng"], note: "巷子讀 lòng。玩弄讀 nòng。" },
-        { word: "強", context: "強迫", pinyin: "qiǎng", options: ["qiáng", "jiàng", "qiāng"], note: "勉強別人讀 qiǎng。" },
-        { word: "給", context: "給予", pinyin: "jǐ", options: ["gěi", "yǔ", "jí"], note: "書面語/供應讀 jǐ。給你(口語)讀 gěi。" },
-        { word: "處", context: "處分", pinyin: "chǔ", options: ["chù", "cǔ", "shù"], note: "動詞(處置)讀 chǔ。地方讀 chù。" },
-        { word: "差", context: "出差", pinyin: "chāi", options: ["chā", "chà", "cī"], note: "派遣讀 chāi。差別讀 chā。" },
-        { word: "校", context: "校對", pinyin: "jiào", options: ["xiào", "xiāo", "jiāo"], note: "訂正讀 jiào。學校讀 xiào。" },
-        { word: "創", context: "創傷", pinyin: "chuāng", options: ["chuàng", "cāng", "shuāng"], note: "傷口讀 chuāng。創造讀 chuàng。" },
-        { word: "潛", context: "潛水", pinyin: "qián", options: ["qiǎn", "jiān", "zàn"], note: "二聲！勿讀三聲。" },
-        { word: "框", context: "門框", pinyin: "kuàng", options: ["kuāng", "guāng", "kāng"], note: "四聲！勿讀一聲。" },
-        { word: "咯", context: "咯血", pinyin: "kǎ", options: ["luò", "gē", "lo"], note: "咯(kǎ)血，勿讀 luò。" },
-        { word: "掄", context: "掄拳頭", pinyin: "lūn", options: ["lún", "lùn", "qiǎng"], note: "一聲！" },
-        { word: "韋", context: "韋氏", pinyin: "wéi", options: ["wěi", "huì", "wēi"], note: "二聲！勿讀三聲，姓氏。" },
-        { word: "膝", context: "膝蓋", pinyin: "xī", options: ["qī", "xí", "yì"], note: "勿讀 '七'。" },
-        { word: "穴", context: "穴位", pinyin: "xué", options: ["xuè", "xuě", "kōng"], note: "二聲！勿讀四聲。" },
-        { word: "亞", context: "亞洲", pinyin: "yà", options: ["yǎ", "à", "yā"], note: "四聲！廣東人常誤讀三聲。" },
-        { word: "咱", context: "咱們", pinyin: "zán", options: ["zá", "zā", "zhán"], note: "二聲！" },
-        { word: "綻", context: "破綻", pinyin: "zhàn", options: ["dìng", "dian", "zhān"], note: "勿讀 '定'。" },
-        { word: "脂", context: "脂肪", pinyin: "zhī", options: ["zhǐ", "zī", "zhì"], note: "一聲！勿讀三聲。" },
-        { word: "貯", context: "貯存", pinyin: "zhù", options: ["chǔ", "zhǔ", "níng"], note: "四聲！勿讀三聲。" },
-        { word: "綜", context: "綜合", pinyin: "zōng", options: ["zòng", "cōng", "zhōng"], note: "一聲！勿讀四聲。" },
-        { word: "否", context: "否極泰來", pinyin: "pǐ", options: ["fǒu", "bì", "pī"], note: "壞運氣到頭讀 pǐ。" },
-        { word: "答", context: "答應", pinyin: "dā", options: ["dá", "tā", "dà"], note: "應允讀 dā。回答讀 dá。" },
-        { word: "殼", context: "地殼", pinyin: "qiào", options: ["ké", "qià", "hú"], note: "地球表層讀 qiào。貝殼讀 ké。" },
-        { word: "艾", context: "方興未艾", pinyin: "ài", options: ["yì", "āi", "wěi"], note: "形容事物蓬勃發展讀 ài。自怨自艾讀 yì。" },
-        { word: "拗", context: "拗不過", pinyin: "niù", options: ["ào", "ǎo", "yòu"], note: "固執/不順從讀 niù。折斷讀 ǎo。" },
-        { word: "柏", context: "柏樹", pinyin: "bǎi", options: ["bó", "bò", "bái"], note: "樹名讀 bǎi。德國柏林讀 bó。" },
-        { word: "堡", context: "碉堡", pinyin: "bǎo", options: ["bǔ", "pù", "bāo"], note: "軍事建築讀 bǎo。十里堡(地名)讀 pù。" },
-        { word: "暴", context: "一暴十寒", pinyin: "pù", options: ["bào", "bó", "pāo"], note: "曬讀 pù (通'曝')。殘暴讀 bào。" },
-        { word: "背", context: "背負", pinyin: "bēi", options: ["bèi", "bēi", "pēi"], note: "動詞(馱)讀 bēi。背部讀 bèi。" },
-        { word: "奔", context: "投奔", pinyin: "bèn", options: ["bēn", "fēn", "pēn"], note: "有目的地去讀 bèn。奔跑讀 bēn。" },
-        { word: "裨", context: "裨益", pinyin: "bì", options: ["pí", "bēi", "bǐ"], note: "益處讀 bì。裨將(副職)讀 pí。" },
-        { word: "扁", context: "扁舟", pinyin: "piān", options: ["biǎn", "piàn", "biān"], note: "小船讀 piān。扁平讀 biǎn。" },
-        { word: "便", context: "便宜", pinyin: "pián", options: ["biàn", "piān", "bīn"], note: "價錢低讀 pián。方便讀 biàn。" },
-        { word: "屏", context: "屏息", pinyin: "bǐng", options: ["píng", "bīng", "bìng"], note: "抑止氣息讀 bǐng。屏幕讀 píng。" },
-        { word: "剝", context: "剝皮", pinyin: "bāo", options: ["bō", "pō", "bó"], note: "口語讀 bāo。剝削(書面)讀 bō。" },
-        { word: "泊", context: "湖泊", pinyin: "pō", options: ["bó", "pò", "bái"], note: "湖讀 pō。停船讀 bó。" },
-        { word: "參", context: "參差", pinyin: "cēn", options: ["cān", "shēn", "chā"], note: "長短不齊讀 cēn cī。" },
-        { word: "藏", context: "寶藏", pinyin: "zàng", options: ["cáng", "zhàng", "zāng"], note: "名詞讀 zàng。動詞(躲藏)讀 cáng。" },
-        { word: "場", context: "場院", pinyin: "cháng", options: ["chǎng", "chāng", "shāng"], note: "平坦空地(農用)讀 cháng。廣場讀 chǎng。" },
-        { word: "稱", context: "稱心", pinyin: "chèn", options: ["chēng", "chèng", "cèn"], note: "合適讀 chèn。稱呼讀 chēng。" },
-        { word: "乘", context: "史乘", pinyin: "shèng", options: ["chéng", "chèng", "shēng"], note: "史書讀 shèng。乘車讀 chéng。" },
-        { word: "重", context: "重複", pinyin: "chóng", options: ["zhòng", "tóng", "cóng"], note: "再次讀 chóng。重量讀 zhòng。" },
-        { word: "臭", context: "銅臭", pinyin: "xiù", options: ["chòu", "xiu", "còu"], note: "氣味(特指壞名聲)讀 xiù。臭味讀 chòu。" },
-        { word: "處", context: "處分", pinyin: "chǔ", options: ["chù", "cǔ", "shù"], note: "動詞(處置)讀 chǔ。地方讀 chù。" },
-        { word: "畜", context: "畜牧", pinyin: "xù", options: ["chù", "chuu", "zī"], note: "飼養讀 xù。牲畜讀 chù。" },
-        { word: "創", context: "重創", pinyin: "chuāng", options: ["chuàng", "cāng", "shuāng"], note: "創傷讀 chuāng。創造讀 chuàng。" },
-        { word: "伺", context: "伺候", pinyin: "cì", options: ["sì", "shì", "cī"], note: "服侍讀 cì。窺探(伺機)讀 sì。" },
-        { word: "逮", context: "逮老鼠", pinyin: "dǎi", options: ["dài", "tài", "dāi"], note: "口語捉拿讀 dǎi。逮捕(書面)讀 dài。" },
-        { word: "當", context: "當真", pinyin: "dàng", options: ["dāng", "tāng", "dǎng"], note: "認為/作為讀 dàng。應當讀 dāng。" },
-        { word: "倒", context: "倒水", pinyin: "dào", options: ["dǎo", "tào", "dāo"], note: "傾出讀 dào。跌倒讀 dǎo。" },
-        { word: "度", context: "揣度", pinyin: "duó", options: ["dù", "duō", "tù"], note: "推測讀 duó。程度讀 dù。" },
-        { word: "阿", context: "阿諛", pinyin: "ē", options: ["ā", "a", "á"], note: "迎合讀 ē yú。" },
-        { word: "菲", context: "菲薄", pinyin: "fěi", options: ["fēi", "fě", "fèi"], note: "微薄讀 fěi。芳菲(花草香)讀 fēi。" },
-        { word: "佛", context: "彷彿", pinyin: "fú", options: ["fó", "fū", "bó"], note: "讀 fú。佛祖讀 fó。" },
-        { word: "供", context: "口供", pinyin: "gòng", options: ["gōng", "gǒng", "jīng"], note: "供詞/供品讀 gòng。供給讀 gōng。" },
-        { word: "枸", context: "枸杞", pinyin: "gǒu", options: ["jū", "gōu", "qí"], note: "讀 gǒu。枸橘讀 jū。" },
-        { word: "冠", context: "冠心病", pinyin: "guān", options: ["guàn", "guǎn", "huàn"], note: "形狀像帽子的讀 guān。冠軍讀 guàn。" },
-        { word: "荷", context: "負荷", pinyin: "hè", options: ["hé", "hē", "kě"], note: "承擔讀 hè。荷花讀 hé。" },
-        { word: "喝", context: "喝采", pinyin: "hè", options: ["hē", "kě", "yè"], note: "大聲叫好讀 hè。喝水讀 hē。" },
-        { word: "橫", context: "橫財", pinyin: "hèng", options: ["héng", "hēng", "gèng"], note: "意外的/兇暴的讀 hèng。橫線讀 héng。" },
-        { word: "哄", context: "起哄", pinyin: "hòng", options: ["hōng", "hǒng", "gōng"], note: "吵鬧讀 hòng。哄騙讀 hǒng。" },
-        { word: "奇", context: "奇數", pinyin: "jī", options: ["qí", "jí", "yǐ"], note: "單數讀 jī。奇怪讀 qí。" },
-        { word: "藉", context: "慰藉", pinyin: "jiè", options: ["jí", "jì", "xí"], note: "安慰讀 jiè。狼藉讀 jí。" },
-        { word: "家", context: "家眷", pinyin: "jiā", options: ["jia", "jià", "gū"], note: "讀 jiā。整天家(詞綴)讀 jia。" },
-        { word: "夾", context: "夾肢窩", pinyin: "gā", options: ["jiā", "jiá", "xiá"], note: "腋下讀 gā。夾子讀 jiā。" },
-        { word: "假", context: "暑假", pinyin: "jià", options: ["jiǎ", "xià", "gǎ"], note: "休假讀 jià。真假讀 jiǎ。" },
-        { word: "間", context: "間諜", pinyin: "jiàn", options: ["jiān", "gān", "xián"], note: "讀 jiàn。中間讀 jiān。" },
-        { word: "將", context: "將領", pinyin: "jiàng", options: ["jiāng", "qiāng", "xiáng"], note: "軍官讀 jiàng。將來讀 jiāng。" },
-        { word: "嚼", context: "細嚼慢嚥", pinyin: "jiáo", options: ["jué", "jiào", "zuǐ"], note: "口語讀 jiáo。咀嚼(書面)讀 jué。" },
-        { word: "角", context: "主角", pinyin: "jué", options: ["jiǎo", "jú", "jià"], note: "角色讀 jué。角落讀 jiǎo。" },
-        { word: "結", context: "結實", pinyin: "jiē", options: ["jié", "jī", "xié"], note: "堅固/長果實讀 jiē。結網讀 jié。" },
-        { word: "禁", context: "禁受", pinyin: "jīn", options: ["jìn", "jīng", "qín"], note: "忍受讀 jīn。禁止讀 jìn。" },
-        { word: "勁", context: "剛勁", pinyin: "jìng", options: ["jìn", "jīng", "gēng"], note: "強有力讀 jìng。幹勁讀 jìn。" },
-        { word: "卷", context: "卷宗", pinyin: "juàn", options: ["juǎn", "quān", "xuàn"], note: "檔案讀 juàn。捲起讀 juǎn。" },
-        { word: "卡", context: "關卡", pinyin: "qiǎ", options: ["kǎ", "qiā", "gǎ"], note: "守衛處讀 qiǎ。卡片讀 kǎ。" },
-        { word: "看", context: "看守", pinyin: "kān", options: ["kàn", "hān", "kāng"], note: "守護讀 kān。看見讀 kàn。" },
-        { word: "空", context: "空缺", pinyin: "kòng", options: ["kōng", "kǒng", "hōng"], note: "閒暇/職位缺讀 kòng。天空讀 kōng。" },
-        { word: "累", context: "勞累", pinyin: "lèi", options: ["lěi", "léi", "lè"], note: "疲勞讀 lèi。積累讀 lěi。" },
-        { word: "量", context: "量體溫", pinyin: "liáng", options: ["liàng", "liǎng", "niáng"], note: "測量讀 liáng。數量讀 liàng。" },
-        { word: "潦", context: "潦草", pinyin: "lǎo", options: ["liáo", "lào", "liǎo"], note: "讀 lǎo。潦倒讀 liáo。" },
-        { word: "落", context: "落枕", pinyin: "lào", options: ["luò", "là", "luō"], note: "脖子痛讀 lào。降落讀 luò。丟三落四讀 là。" },
-        { word: "露", context: "露面", pinyin: "lòu", options: ["lù", "lóu", "lào"], note: "口語顯露讀 lòu。露水讀 lù。" },
-        { word: "率", context: "率領", pinyin: "shuài", options: ["lǜ", "suài", "lù"], note: "帶領讀 shuài。效率讀 lǜ。" },
-        { word: "脈", context: "脈脈", pinyin: "mò", options: ["mài", "mó", "bó"], note: "含情貌讀 mò。脈搏讀 mài。" },
-        { word: "沒", context: "沒收", pinyin: "mò", options: ["méi", "muò", "bó"], note: "扣收讀 mò。沒有讀 méi。" },
-        { word: "悶", context: "悶熱", pinyin: "mēn", options: ["mèn", "mēng", "móng"], note: "氣壓低讀 mēn。煩悶讀 mèn。" },
-        { word: "靡", context: "靡費", pinyin: "mí", options: ["mǐ", "méi", "mì"], note: "浪費讀 mí。風靡讀 mǐ。" },
-        { word: "模", context: "模具", pinyin: "mú", options: ["mó", "mò", "mù"], note: "工具讀 mú。模範讀 mó。" },
-        { word: "難", context: "責難", pinyin: "nàn", options: ["nán", "nuò", "luàn"], note: "質問/災禍讀 nàn。困難讀 nán。" },
-        { word: "寧", context: "寧願", pinyin: "nìng", options: ["níng", "nīng", "lìng"], note: "情願讀 nìng。安寧讀 níng。" },
-        { word: "瘧", context: "瘧疾", pinyin: "nüè", options: ["yào", "niè", "xuè"], note: "病名讀 nüè。" },
-        { word: "噴", context: "噴香", pinyin: "pèn", options: ["pēn", "fēn", "bèn"], note: "香氣濃讀 pèn。噴水讀 pēn。" },
-        { word: "片", context: "唱片", pinyin: "piàn", options: ["piān", "biàn", "pàn"], note: "PSC 標準讀 piàn。" },
-        { word: "漂", context: "漂白", pinyin: "piǎo", options: ["piāo", "piào", "biāo"], note: "洗淨讀 piǎo。漂亮讀 piào。" },
-        { word: "撇", context: "撇開", pinyin: "piē", options: ["piě", "biē", "pié"], note: "拋開讀 piē。筆畫讀 piě。" },
-        { word: "脯", context: "果脯", pinyin: "fǔ", options: ["pú", "bǔ", "pǔ"], note: "肉乾/果乾讀 fǔ。胸脯讀 pú。" },
-        { word: "仆", context: "前仆後繼", pinyin: "pū", options: ["pú", "bǔ", "fù"], note: "跌倒讀 pū。僕人讀 pú。" },
-        { word: "棲", context: "棲息", pinyin: "qī", options: ["xī", "qì", "jī"], note: "讀 qī。勿讀 xī。" },
-        { word: "蹊", context: "蹊蹺", pinyin: "qī", options: ["xī", "qì", "jī"], note: "讀 qī。勿讀 xī。" },
-        { word: "稽", context: "稽首", pinyin: "qǐ", options: ["jī", "jiē", "kè"], note: "叩頭讀 qǐ。滑稽讀 jī。" },
-        { word: "乾", context: "乾坤", pinyin: "qián", options: ["gān", "kūn", "hán"], note: "八卦讀 qián。乾燥讀 gān。" },
-        { word: "強", context: "倔強", pinyin: "jiàng", options: ["qiáng", "qiǎng", "qiāng"], note: "固執讀 jiàng。" },
-        { word: "悄", context: "悄無聲息", pinyin: "qiǎo", options: ["qiāo", "xiāo", "qiào"], note: "寂靜讀 qiǎo。悄悄話讀 qiāo。" },
-        { word: "翹", context: "翹首", pinyin: "qiáo", options: ["qiào", "yáo", "jiào"], note: "抬起讀 qiáo。翹尾巴讀 qiào。" },
-        { word: "親", context: "親家", pinyin: "qìng", options: ["qīn", "qíng", "xīn"], note: "姻親讀 qìng。" },
-        { word: "曲", context: "曲折", pinyin: "qū", options: ["qǔ", "quē", "gū"], note: "彎曲讀 qū。歌曲讀 qǔ。" },
-        { word: "圈", context: "圈養", pinyin: "juàn", options: ["quān", "juān", "quán"], note: "養獸欄讀 juàn。" },
-        { word: "喪", context: "喪禮", pinyin: "sāng", options: ["sàng", "shāng", "zāng"], note: "儀式讀 sāng。喪失讀 sàng。" },
-        { word: "色", context: "掉色", pinyin: "shǎi", options: ["sè", "shà", "sāi"], note: "口語(顏色)讀 shǎi。" },
-        { word: "塞", context: "塞車", pinyin: "sāi", options: ["sè", "sài", "zè"], note: "動詞讀 sāi。要塞讀 sài。閉塞讀 sè。" },
-        { word: "剎", context: "剎車", pinyin: "shā", options: ["chà", "shà", "cā"], note: "制動讀 shā。古剎讀 chà。" },
-        { word: "廈", context: "大廈", pinyin: "shà", options: ["xià", "xiá", "shā"], note: "高樓讀 shà。廈門讀 xià。" },
-        { word: "折", context: "折本", pinyin: "shé", options: ["zhé", "zhē", "xié"], note: "虧損讀 shé。折斷讀 zhé。" },
-        { word: "舍", context: "宿舍", pinyin: "shè", options: ["shě", "sè", "xià"], note: "房屋讀 shè。捨棄讀 shě。" },
-        { word: "識", context: "標識", pinyin: "zhì", options: ["shí", "zhǐ", "sì"], note: "記號讀 zhì。知識讀 shí。" },
-        { word: "似", context: "似的", pinyin: "shì", options: ["sì", "shí", "yǐ"], note: "助詞讀 shì。相似讀 sì。" },
-        { word: "省", context: "反省", pinyin: "xǐng", options: ["shěng", "shēng", "xīng"], note: "檢查自己讀 xǐng。省份讀 shěng。" },
-        { word: "數", context: "數落", pinyin: "shǔ", options: ["shù", "shuò", "sù"], note: "列舉過失讀 shǔ。" },
-        { word: "遂", context: "半身不遂", pinyin: "suí", options: ["suì", "shuǐ", "zhú"], note: "麻痹讀 suí。遂願讀 suì。" },
-        { word: "沓", context: "一沓紙", pinyin: "dá", options: ["tà", "tá", "dà"], note: "量詞讀 dá。紛至沓來讀 tà。" },
-        { word: "苔", context: "舌苔", pinyin: "tāi", options: ["tái", "dài", "tài"], note: "讀 tāi。苔蘚讀 tái。" },
-        { word: "調", context: "調度", pinyin: "diào", options: ["tiáo", "tiǎo", "zhōu"], note: "調動讀 diào。調節讀 tiáo。" },
-        { word: "帖", context: "妥帖", pinyin: "tiē", options: ["tiè", "tiě", "dié"], note: "合適讀 tiē。請帖讀 tiě。" },
-        { word: "吐", context: "談吐", pinyin: "tǔ", options: ["tù", "tū", "dù"], note: "發出聲音/東西讀 tǔ。嘔吐讀 tù。" },
-        { word: "瓦", context: "瓦刀", pinyin: "wà", options: ["wǎ", "wā", "gài"], note: "工具讀 wà。瓦片讀 wǎ。" },
-        { word: "為", context: "因為", pinyin: "wèi", options: ["wéi", "wěi", "yīn"], note: "介詞讀 wèi。作為讀 wéi。" },
-        { word: "鮮", context: "鮮為人知", pinyin: "xiǎn", options: ["xiān", "xuǎn", "jiàn"], note: "少讀 xiǎn。新鮮讀 xiān。" },
-        { word: "相", context: "真相", pinyin: "xiàng", options: ["xiāng", "jiāng", "sǎng"], note: "容貌/實質讀 xiàng。互相讀 xiāng。" },
-        { word: "宿", context: "星宿", pinyin: "xiù", options: ["sù", "xiǔ", "suō"], note: "星座讀 xiù。住宿讀 sù。一宿讀 xiǔ。" },
-        { word: "削", context: "剝削", pinyin: "xuē", options: ["xiāo", "xiào", "shuā"], note: "書面讀 xuē。削皮(口語)讀 xiāo。" },
-        { word: "血", context: "血淋淋", pinyin: "xiě", options: ["xuè", "xuě", "xiè"], note: "口語讀 xiě。血液讀 xuè。" },
-        { word: "殷", context: "殷紅", pinyin: "yān", options: ["yīn", "yǐn", "yàn"], note: "黑紅讀 yān。殷切讀 yīn。" },
-        { word: "咽", context: "嗚咽", pinyin: "yè", options: ["yàn", "yān", "yie"], note: "悲泣讀 yè。吞咽讀 yàn。" },
-        { word: "鑰", context: "鑰匙", pinyin: "yào", options: ["yuè", "yāo", "shì"], note: "讀 yào。鎖鑰(書面)讀 yuè。" },
-        { word: "葉", context: "葉韻", pinyin: "xié", options: ["yè", "shi", "jia"], note: "協韻讀 xié。" },
-        { word: "應", context: "應用", pinyin: "yìng", options: ["yīng", "yíng", "rèn"], note: "名詞/動詞讀 yìng。應該讀 yīng。" },
-        { word: "傭", context: "傭金", pinyin: "yòng", options: ["yōng", "rǒng", "tōng"], note: "費讀 yòng。傭人讀 yōng。" },
-        { word: "熨", context: "熨帖", pinyin: "yù", options: ["yùn", "wèi", "yún"], note: "安適讀 yù。熨斗讀 yùn。" },
-        { word: "與", context: "參與", pinyin: "yù", options: ["yǔ", "yú", "jǔ"], note: "參加讀 yù。與其讀 yǔ。" },
-        { word: "吁", context: "氣喘吁吁", pinyin: "xū", options: ["yù", "yú", "yū"], note: "擬聲詞讀 xū。呼籲讀 yù。" },
-        { word: "暈", context: "暈車", pinyin: "yùn", options: ["yūn", "hūn", "huī"], note: "讀 yùn。暈倒讀 yūn。" },
-        { word: "載", context: "下載", pinyin: "zài", options: ["zǎi", "chāi", "cái"], note: "裝載/數據讀 zài。三年五載讀 zǎi。" },
-        { word: "擇", context: "擇菜", pinyin: "zhái", options: ["zé", "zhà", "cè"], note: "口語讀 zhái。選擇讀 zé。" },
-        { word: "扎", context: "掙扎", pinyin: "zhá", options: ["zhā", "zā", "zhà"], note: "讀 zhá。扎針讀 zhā。" },
-        { word: "軋", context: "傾軋", pinyin: "yà", options: ["zhá", "gá", "zā"], note: "排擠讀 yà。軋鋼讀 zhá。" },
-        { word: "粘", context: "粘貼", pinyin: "zhān", options: ["nián", "nān", "zi"], note: "動詞讀 zhān。粘稠(形容詞)讀 nián。" },
-        { word: "漲", context: "頭昏腦漲", pinyin: "zhàng", options: ["zhǎng", "zhāng", "cháng"], note: "充血/多出讀 zhàng。漲潮讀 zhǎng。" },
-        { word: "著", context: "著急", pinyin: "zháo", options: ["zhe", "zhuó", "zhù"], note: "焦急讀 zháo。穿著讀 zhuó。" },
-        { word: "正", context: "正月", pinyin: "zhēng", options: ["zhèng", "zheng", "jīng"], note: "農曆一月讀 zhēng。正確讀 zhèng。" },
-        { word: "只", context: "只身", pinyin: "zhī", options: ["zhǐ", "qí", "zi"], note: "單獨讀 zhī。只有讀 zhǐ。" },
-        { word: "中", context: "中肯", pinyin: "zhòng", options: ["zhōng", "zong", "cōng"], note: "合乎讀 zhòng。中間讀 zhōng。" },
-        { word: "種", context: "種地", pinyin: "zhòng", options: ["zhǒng", "zǒng", "cóng"], note: "動作讀 zhòng。種類讀 zhǒng。" },
-        { word: "軸", context: "壓軸", pinyin: "zhòu", options: ["zhóu", "chōu", "yóu"], note: "最後一齣讀 zhòu。車軸讀 zhóu。" },
-        { word: "屬", context: "屬意", pinyin: "zhǔ", options: ["shǔ", "sǔ", "zǔ"], note: "意向讀 zhǔ。屬於讀 shǔ。" },
-        { word: "轉", context: "轉文", pinyin: "zhuǎi", options: ["zhuǎn", "zhuàn", "chuán"], note: "賣弄文采讀 zhuǎi。" },
-        { word: "鑽", context: "鑽石", pinyin: "zuān", options: ["zuàn", "zān", "cuan"], note: "寶石讀 zuān。鑽頭讀 zuàn。" },
-        { word: "作", context: "作坊", pinyin: "zuō", options: ["zuò", "zé", "zuó"], note: "工場讀 zuō。工作讀 zuò。" },
-        { word: "塑", context: "塑料", pinyin: "sù", options: ["suò", "shù", "shuò"], note: "平舌 sù。廣東人常讀 shù/suò。" },
-        { word: "澀", context: "羞澀", pinyin: "sè", options: ["shè", "sà", "xiū"], note: "平舌 sè。廣東人常讀 shè。" },
-        { word: "損", context: "破損", pinyin: "sǔn", options: ["shǔn", "xǔn", "suen"], note: "平舌 sǔn。" },
-        { word: "隨", context: "隨便", pinyin: "suí", options: ["shuí", "xuí", "chui"], note: "平舌 suí。" },
-        { word: "俗", context: "通俗", pinyin: "sú", options: ["shú", "xú", "sù"], note: "平舌 sú。" },
-        { word: "搜", context: "搜索", pinyin: "sōu", options: ["shōu", "xiū", "sōu"], note: "平舌 sōu。" },
-        { word: "暫", context: "暫時", pinyin: "zàn", options: ["zhàn", "zán", "chàn"], note: "平舌 zàn。勿讀 zhàn。" },
-        { word: "鑿", context: "確鑿", pinyin: "záo", options: ["zuò", "zhuó", "zào"], note: "平舌 záo。勿讀 zuò/zhuó。" },
-        { word: "宰", context: "主宰", pinyin: "zǎi", options: ["zhǎi", "zài", "jiě"], note: "平舌 zǎi。" },
-        { word: "怎", context: "怎麼", pinyin: "zěn", options: ["zhěn", "zě", "záng"], note: "平舌 zěn。" },
-        { word: "宗", context: "宗旨", pinyin: "zōng", options: ["zhōng", "zòng", "jōng"], note: "平舌 zōng。" },
-        { word: "冊", context: "手冊", pinyin: "cè", options: ["chè", "zè", "cā"], note: "平舌 cè。" },
-        { word: "擦", context: "摩擦", pinyin: "cā", options: ["chā", "chá", "cǎ"], note: "平舌 cā。" },
-        { word: "測", context: "測驗", pinyin: "cè", options: ["chè", "zè", "cā"], note: "平舌 cè。" },
-        { word: "參", context: "參加", pinyin: "cān", options: ["chān", "shēn", "cǎn"], note: "平舌 cān。" },
-        { word: "層", context: "層次", pinyin: "céng", options: ["chéng", "cén", "cèng"], note: "平舌 céng。" },
-        { word: "錯", context: "錯誤", pinyin: "cuò", options: ["chuò", "còu", "cuō"], note: "平舌 cuò。" },
-        { word: "債", context: "債務", pinyin: "zhài", options: ["zài", "jiè", "zhāi"], note: "捲舌 zhài。勿讀 zài。" },
-        { word: "棧", context: "客棧", pinyin: "zhàn", options: ["zàn", "jiàn", "zhān"], note: "捲舌 zhàn。" },
-        { word: "佔", context: "佔據", pinyin: "zhàn", options: ["zàn", "diàn", "zhān"], note: "捲舌 zhàn。" },
-        { word: "貞", context: "堅貞", pinyin: "zhēn", options: ["zēn", "zhēng", "zhèn"], note: "捲舌 zhēn。" },
-        { word: "職", context: "職業", pinyin: "zhí", options: ["zí", "zhì", "zhǐ"], note: "捲舌二聲 zhí。" },
-        { word: "逐", context: "追逐", pinyin: "zhú", options: ["zú", "zhù", "zhǔ"], note: "捲舌 zhú。" },
-        { word: "徹", context: "徹底", pinyin: "chè", options: ["cè", "qiè", "chē"], note: "捲舌 chè。勿讀 cè。" },
-        { word: "拆", context: "拆信", pinyin: "chāi", options: ["cāi", "chè", "chā"], note: "捲舌 chāi。勿讀 cāi。" },
-        { word: "沈", context: "沈陽", pinyin: "shěn", options: ["chén", "sěn", "shén"], note: "捲舌 shěn。姓氏。" },
-        { word: "賞", context: "欣賞", pinyin: "shǎng", options: ["sǎng", "shāng", "shàng"], note: "捲舌 shǎng。" },
-        { word: "殺", context: "殺菌", pinyin: "shā", options: ["sā", "shà", "shá"], note: "捲舌 shā。" },
-        { word: "曬", context: "曬太陽", pinyin: "shài", options: ["sài", "shà", "sāi"], note: "捲舌 shài。勿讀 sài。" },
-        { word: "暖", context: "溫暖", pinyin: "nuǎn", options: ["luǎn", "nǎn", "nuán"], note: "鼻音 n。勿讀 l。" },
-        { word: "濃", context: "濃厚", pinyin: "nóng", options: ["lóng", "yóng", "néng"], note: "鼻音 n。" },
-        { word: "嫩", context: "嬌嫩", pinyin: "nèn", options: ["lèn", "nùn", "rèn"], note: "鼻音 n。" },
-        { word: "擬", context: "模擬", pinyin: "nǐ", options: ["lǐ", "yǐ", "ní"], note: "鼻音 n。" },
-        { word: "虐", context: "虐待", pinyin: "nüè", options: ["luè", "yuè", "nè"], note: "鼻音 n。" },
-        { word: "拎", context: "拎包", pinyin: "līn", options: ["nīn", "līng", "lǐn"], note: "邊音 l。" },
-        { word: "劣", context: "惡劣", pinyin: "liè", options: ["lüè", "lè", "liě"], note: "讀 liè。" },
-        { word: "掠", context: "掠奪", pinyin: "lüè", options: ["luè", "liè", "lue"], note: "讀 lüè。" },
-        { word: "略", context: "省略", pinyin: "lüè", options: ["luè", "liè", "lüě"], note: "讀 lüè。" },
-        { word: "翁", context: "老翁", pinyin: "wēng", options: ["wōng", "yōng", "wèng"], note: "讀 wēng。勿讀 wōng。" },
-        { word: "宏", context: "宏偉", pinyin: "hóng", options: ["huáng", "fóng", "hōng"], note: "聲母 h。" },
-        { word: "互", context: "互相", pinyin: "hù", options: ["fù", "wù", "kù"], note: "聲母 h。勿讀 f。" },
-        { word: "懷", context: "懷念", pinyin: "huái", options: ["wái", "fái", "huài"], note: "聲母 h。" },
-        { word: "歡", context: "歡迎", pinyin: "huān", options: ["fūn", "wān", "guān"], note: "聲母 h。勿讀 fūn。" },
-        { word: "灰", context: "灰塵", pinyin: "huī", options: ["fuī", "fēi", "huí"], note: "聲母 h。勿讀 f。" },
-        { word: "婚", context: "結婚", pinyin: "hūn", options: ["fūn", "wūn", "hùn"], note: "聲母 h。" },
-        { word: "闊", context: "廣闊", pinyin: "kuò", options: ["fuò", "kuó", "huò"], note: "聲母 k。勿讀 f。" },
-        { word: "快", context: "快樂", pinyin: "kuài", options: ["fài", "kài", "kuǎi"], note: "聲母 k。勿讀 f。" },
-        { word: "款", context: "付款", pinyin: "kuǎn", options: ["fǔn", "kǎn", "kuàn"], note: "聲母 k。勿讀 f。" },
-        { word: "況", context: "情況", pinyin: "kuàng", options: ["fàng", "huàng", "kàng"], note: "聲母 k。" },
-        { word: "凝", context: "凝固", pinyin: "níng", options: ["yíng", "nīng", "nín"], note: "鼻音 n。" },
-        { word: "您", context: "您好", pinyin: "nín", options: ["yín", "lín", "níng"], note: "鼻音 n。" },
-        { word: "牛", context: "牛奶", pinyin: "niú", options: ["liú", "yú", "niū"], note: "鼻音 n。" },
-        { word: "女", context: "女兒", pinyin: "nǚ", options: ["lǚ", "yǔ", "nǔ"], note: "鼻音 n。" },
-        { word: "挪", context: "挪用", pinyin: "nuó", options: ["luó", "nó", "nuò"], note: "鼻音 n。" }
-    ];
-
-    // ==========================================
-    // 2. 自動去重邏輯
-    // ==========================================
-    const uniqueBank = [];
-    const seenKeys = new Set();
-    fullQuestionBank.forEach(item => {
-        const key = item.word + "_" + item.context; // 組合 "字_詞" 作為唯一標識
-        if (!seenKeys.has(key)) {
-            seenKeys.add(key);
-            uniqueBank.push(item);
-        }
-    });
-    fullQuestionBank = uniqueBank; // 覆蓋為去重後的列表
-
-    // ==========================================
-    // 3. 全局變量
-    // ==========================================
-    let currentUser = "";
-    let currentQuestions = [];
-    let currentIndex = 0;
-    let score = 0;
-    let canAnswer = true;
-    let sessionMistakes = [];
-    
-    // 雲端數據緩存
-    let cloudMistakes = [];
-    let cloudMastered = [];
-
-    // ==========================================
-    // 4. 系統功能 (登錄/同步)
-    // ==========================================
-function handleLogin() {
-        const user = document.getElementById('username').value.trim();
-        const pass = document.getElementById('password').value.trim();
-        const btn = document.getElementById('login-btn');
-        const msg = document.getElementById('login-msg');
-
-        if(!user || !pass) { msg.textContent = "請輸入完整帳號密碼"; return; }
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJS1GnUF4LzybNeWKNy7o0d94m7UuRO_9V4zPDINV6S3aQTSu87vY2k8CI_IYhswUOBQ/exec"; 
         
-        btn.disabled = true; 
-        btn.innerHTML = `<span class="spinner"></span> 驗證中...`;
-        msg.textContent = "";
+        const studentsData = [
+            "1 CHAN HEI YU 陳羲諭", "2 CHAN LUT YIN 陳律言", "3 CHAN PAK HEI LOUIS 陳柏希",
+            "4 CHAU HO YIN 周澔賢", "5 CHENG WAN CHUN 鄭允臻", "6 CHENG WING HIM JAMIE 鄭穎謙",
+            "7 CHEUNG KA WAI HARRIS 張珈維", "8 CHOI MAN LOK 蔡汶諾", "9 FU KA KUEN 傅嘉權",
+            "10 LAI CHUN KIU CRATON 黎振喬", "11 LEUNG LOK YU 梁樂瑜", "12 LI REN 李仁",
+            "13 LI SUM YIN 李芯弦", "14 NG ARIANA TSZ KAU 伍芷逑", "15 PANG SZE POK 彭詩博",
+            "16 POON SZE YAT SURI 潘思佾", "17 SO CHING YAN 蘇靖恩", "18 TSE TSZ WUN 謝子媛",
+            "19 TSUI YI SHUN 徐苡淳", "20 WANG KAIXUAN 王鍇軒", "21 WONG YEE KI 黃依祈",
+            "22 WRIGHT ETHAN DAVID 韋信", "23 WRIGHT NATHAN CHRISTOPHER 韋諾", "24 WU TSZ YING BELLA 伍祉凝",
+            "25 YUNG AGGER 翁柏翹"
+        ];
 
-        fetch(API_URL, {
-            method: 'POST', 
-            body: JSON.stringify({ action: "login", username: user, password: pass })
-        })
-        .then(response => response.json()) // 解析 JSON
-        .then(data => {
-            if (data.result === "success") {
-                // 登錄成功
-                currentUser = user;
-                msg.style.color = "#2ecc71"; // 綠色
-                msg.textContent = data.msg + " 正在同步資料...";
-                fetchCloudProfile(); // 繼續載入資料
-            } else {
-                // 登錄失敗 (密碼錯誤)
-                btn.disabled = false;
-                btn.textContent = "登錄系統";
-                msg.style.color = "#e74c3c"; // 紅色
-                msg.textContent = data.msg;
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            msg.textContent = "連線錯誤，請檢查網址設定"; 
-            btn.disabled = false; 
-            btn.textContent = "登錄系統";
-        });
-    }
-
-    function fetchCloudProfile() {
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: "get_profile", username: currentUser })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("雲端數據:", data);
-            cloudMistakes = data.mistakes || [];
-            cloudMastered = data.mastered || [];
-            
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('game-container').style.display = 'block';
-            document.getElementById('display-user').textContent = currentUser;
-            initGame();
-        })
-        .catch(err => {
-            console.error("同步失敗", err);
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('game-container').style.display = 'block';
-            document.getElementById('display-user').textContent = currentUser;
-            initGame();
-        });
-    }
-
-    function uploadRecord(question, userChoice, isCorrect) {
-        document.getElementById('sync-status').innerHTML = '<span class="spinner"></span>';
-        fetch(API_URL, {
-            method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify({
-                action: "save_record", username: currentUser,
-                word: question.word, context: question.context,
-                userChoice: userChoice, correctPinyin: question.pinyin,
-                isCorrect: isCorrect
-            })
-        }).then(() => {
-            document.getElementById('sync-status').innerHTML = "✅";
-            setTimeout(() => { document.getElementById('sync-status').innerHTML = ""; }, 2000);
-        });
-    }
-
-    // ==========================================
-    // 5. 遊戲核心邏輯
-    // ==========================================
-    function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-    }
-
-    function selectQuestions() {
-        let errorPool = [], newPool = [], masteredPool = [];
-
-        fullQuestionBank.forEach(item => {
-            const key = item.word + "_" + item.context;
-            const isMastered = cloudMastered.includes(key);
-            const isMistake = cloudMistakes.includes(key);
-
-            if (isMistake && !isMastered) {
-                errorPool.push(item);
-            } else if (isMastered) {
-                masteredPool.push(item);
-            } else {
-                newPool.push(item);
-            }
-        });
-
-        // 優先順序：錯題 > 新題 > 已精通
-        let selected = [];
-        shuffleArray(errorPool); 
-        selected = selected.concat(errorPool.slice(0, 10)); 
-        
-        if (selected.length < 20) { 
-            shuffleArray(newPool); 
-            selected = selected.concat(newPool.slice(0, 20 - selected.length)); 
-        }
-        
-        if (selected.length < 20) { 
-            shuffleArray(masteredPool); 
-            selected = selected.concat(masteredPool.slice(0, 20 - selected.length)); 
-        }
-        
-        return shuffleArray(selected.slice(0, 20));
-    }
-
-    function initGame() {
-        currentIndex = 0; score = 0; sessionMistakes = [];
-        document.getElementById('game-screen').style.display = 'block';
-        document.getElementById('result-screen').style.display = 'none';
-        
-        currentQuestions = selectQuestions();
-        if (currentQuestions.length === 0) { alert("題庫為空或加載失敗！"); return; }
-        renderQuestion();
-    }
-
-    function renderQuestion() {
-        if (currentIndex >= currentQuestions.length) { endGame(); return; }
-        
-        const q = currentQuestions[currentIndex];
-        document.getElementById('session-progress').style.width = `${(currentIndex / currentQuestions.length) * 100}%`;
-        document.getElementById('question-word').innerHTML = q.context.replace(q.word, `<span class="target-char">${q.word}</span>`);
-        document.getElementById('feedback-box').innerHTML = '';
-
-        let options = [q.pinyin, ...q.options];
-        options = shuffleArray(options);
-
-        const container = document.getElementById('options-container');
-        container.innerHTML = '';
-        options.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn'; btn.textContent = opt;
-            btn.onclick = () => handleAnswer(opt, q, btn);
-            container.appendChild(btn);
-        });
-        canAnswer = true;
-    }
-
-    function handleAnswer(selected, question, btn) {
-        if (!canAnswer) return; canAnswer = false;
-        
-        const isCorrect = selected === question.pinyin;
-        if (isCorrect) score++;
-        
-        const key = question.word + "_" + question.context;
-
-        // 本地模擬更新 (讓UI看起來更即時)
-        if (isCorrect) {
-            const mistIndex = cloudMistakes.indexOf(key);
-            if (mistIndex > -1) cloudMistakes.splice(mistIndex, 1);
-        } else {
-            if (!cloudMistakes.includes(key)) cloudMistakes.push(key);
-            sessionMistakes.push({ word: question.word, context: question.context, pinyin: question.pinyin, wrong: selected });
-        }
-
-        // 上傳數據
-        uploadRecord(question, selected, isCorrect);
-
-        const allBtns = document.querySelectorAll('.option-btn');
-        allBtns.forEach(b => {
-            if (b.textContent === question.pinyin) b.classList.add('correct');
-            else if (b.textContent === selected && !isCorrect) b.classList.add('wrong');
-            b.disabled = true;
-        });
-
-        let statusHtml = isCorrect ? 
-            `<div style="color:var(--success-color); font-weight:bold; font-size:20px;">✅ 回答正確！</div>` : 
-            `<div style="color:var(--accent-color); font-weight:bold; font-size:20px;">❌ 錯誤！</div>`;
-        
-        const isLast = currentIndex === currentQuestions.length - 1;
-        const btnText = isLast ? "📊 查看成績" : "👉 下一題";
-
-        document.getElementById('feedback-box').innerHTML = `
-            <div id="feedback-text">${statusHtml}${question.note ? `<br><span class="feedback-note">💡 ${question.note}</span>` : ''}</div>
-            <button onclick="forceNext()">${btnText}</button>
-        `;
-    }
-
-    function forceNext() { currentIndex++; renderQuestion(); }
-
-    function endGame() {
-        document.getElementById('game-screen').style.display = 'none';
-        document.getElementById('result-screen').style.display = 'block';
-        
-        const total = currentQuestions.length;
-        document.getElementById('final-score').textContent = Math.round((score/total)*100);
-
-        // 更新掌握度UI
-        const pct = Math.round((cloudMastered.length / fullQuestionBank.length) * 100);
-        document.getElementById('mastery-percentage').textContent = `${pct}%`;
-        document.getElementById('mastery-bar-fill').style.width = `${pct}%`;
-        document.getElementById('mastery-count-text').innerHTML = `已精通 ${cloudMastered.length} 字 / 共 ${fullQuestionBank.length} 字`;
-
-        // 錯題回顧
-        const container = document.getElementById('review-container');
-        container.innerHTML = '';
-        if (sessionMistakes.length === 0) container.innerHTML = '<div style="padding:15px; color:#bdc3c7;">🎉 太棒了！本局全對！</div>';
-        else {
-            sessionMistakes.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'review-item';
-                div.innerHTML = `<span style="color:white">${item.context}</span> <span style="color:#7f8c8d; font-size:14px;">(誤讀: <span style="color:var(--accent-color)">${item.wrong}</span> → 正音: <span style="color:var(--success-color)">${item.pinyin}</span>)</span>`;
-                container.appendChild(div);
-            });
-        }
-    }
-
-    // ==========================================
-    // 6. 特效 (星空背景)
-    // ==========================================
-    function initStars() {
-        const canvas = document.getElementById('star-canvas');
-        if(!canvas) return;
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        let stars = Array.from({length: 60}, () => ({
-            x: Math.random() * canvas.width, y: Math.random() * canvas.height,
-            radius: Math.random() * 1.5, alpha: Math.random(), speed: Math.random() * 0.05
+        let students = studentsData.map((name, index) => ({
+            id: index + 1,
+            name: name,
+            smallStars: 0,
+            bigStars: 0
         }));
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = "white";
-            stars.forEach(star => {
-                ctx.globalAlpha = star.alpha; ctx.beginPath(); ctx.arc(star.x, star.y, star.radius, 0, Math.PI*2); ctx.fill();
-                star.y -= star.speed; if(star.y < 0) { star.y = canvas.height; star.x = Math.random() * canvas.width; }
-            });
-            requestAnimationFrame(draw);
-        }
-        draw();
-    }
 
-    window.onload = initStars;
-</script>
+        // 音效系統
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(frequency, type, duration, vol=0.1) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = type;
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function playAddSound() {
+            playTone(800, 'sine', 0.2);
+            setTimeout(() => playTone(1200, 'sine', 0.3), 100);
+        }
+        function playSubSound() { playTone(300, 'triangle', 0.3); }
+        function playWinSound() {
+            let time = 0;
+            [523.25, 659.25, 783.99, 1046.50].forEach(freq => {
+                setTimeout(() => playTone(freq, 'square', 0.4, 0.05), time);
+                time += 150;
+            });
+        }
+
+        // 渲染畫面 (加入 changedIndices 參數來追蹤哪些學生剛剛被加分)
+        function render(changedIndices = []) {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+
+            students.forEach((student, index) => {
+                const card = document.createElement('div');
+                card.className = 'student-card';
+                card.onclick = (e) => {
+                    if(e.target.closest('.btn-minus')) return;
+                    addPoint(index);
+                };
+
+                let smallStarsHTML = '';
+                for(let i=0; i<10; i++) {
+                    let isFilled = i < student.smallStars;
+                    // 只有當這顆星星是該學生的「最後一顆填滿的星星」，且該學生剛剛被加分時，才加入彈跳動畫
+                    let isJustAdded = isFilled && (i === student.smallStars - 1) && changedIndices.includes(index);
+                    
+                    let classes = `star ${isFilled ? 'filled' : ''} ${isJustAdded ? 'pop-anim' : ''}`;
+                    smallStarsHTML += `<svg class="${classes}" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`;
+                }
+
+                let bigStarsHTML = '';
+                for(let i=0; i<student.bigStars; i++) {
+                    bigStarsHTML += `<span class="big-star-icon">⭐</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="student-name">${student.name}</div>
+                        <div class="big-stars">${bigStarsHTML}</div>
+                    </div>
+                    <div class="card-bottom">
+                        <div class="small-stars">${smallStarsHTML}</div>
+                        <button class="btn-minus" onclick="subPoint(${index})" title="扣分">
+                            <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function addPoint(index) {
+            if(students[index].smallStars < 10) {
+                students[index].smallStars++;
+                if(students[index].smallStars === 10) {
+                    playWinSound();
+                    fireConfetti();
+                    render([index]); // 傳入剛加分的學生 index，讓第10顆星閃爍
+                    setTimeout(() => {
+                        students[index].smallStars = 0;
+                        students[index].bigStars++;
+                        render(); // 升級大星星時不需要小星星閃爍
+                    }, 1000);
+                } else {
+                    playAddSound();
+                    render([index]); // 傳入剛加分的學生 index
+                }
+            }
+        }
+
+        function subPoint(index) {
+            if(students[index].smallStars > 0) {
+                students[index].smallStars--;
+                playSubSound();
+                render(); // 扣分不需要閃爍
+            }
+        }
+
+        function addAll() {
+            playAddSound();
+            let changedIndices = [];
+            let hasWin = false;
+            
+            students.forEach((s, i) => {
+                if(s.smallStars < 10) {
+                    s.smallStars++;
+                    changedIndices.push(i); // 記錄被加分的學生
+                    if(s.smallStars === 10) {
+                        hasWin = true;
+                        setTimeout(() => {
+                            s.smallStars = 0;
+                            s.bigStars++;
+                            render();
+                        }, 1000);
+                    }
+                }
+            });
+            
+            if(hasWin) {
+                playWinSound();
+                fireConfetti();
+            }
+            render(changedIndices); // 傳入所有被加分的學生 index
+        }
+
+        function subAll() {
+            playSubSound();
+            students.forEach(s => {
+                if(s.smallStars > 0) s.smallStars--;
+            });
+            render(); // 扣分不需要閃爍
+        }
+
+        function fireConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+            for(let i=0; i<100; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(confetti);
+
+                const duration = Math.random() * 2 + 1;
+                confetti.animate([
+                    { transform: `translate3d(0, -10vh, 0) rotate(0deg)`, opacity: 1 },
+                    { transform: `translate3d(${Math.random()*200 - 100}px, 100vh, 0) rotate(${Math.random()*720}deg)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    easing: 'cubic-bezier(.37,0,.63,1)'
+                }).onfinish = () => confetti.remove();
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 2000);
+        }
+
+        // ==========================================
+        // 背景自動讀取與保存機制
+        // ==========================================
+        
+        async function loadData() {
+            try {
+                const response = await fetch(SCRIPT_URL);
+                const data = await response.json();
+                
+                if (data && data.length > 0) {
+                    data.forEach(d => {
+                        const student = students.find(s => s.id == d.id);
+                        if (student) {
+                            student.smallStars = parseInt(d.smallStars) || 0;
+                            student.bigStars = parseInt(d.bigStars) || 0;
+                        }
+                    });
+                    render(); // 載入資料時不需要閃爍
+                    showToast("資料已自動同步！");
+                }
+            } catch (error) {
+                console.error("自動讀取失敗:", error);
+                showToast("連線異常，目前為單機模式");
+            }
+        }
+
+        async function saveData() {
+            try {
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(students),
+                    headers: {
+                        'Content-Type': 'text/plain;charset=utf-8',
+                    },
+                    keepalive: true
+                });
+            } catch (error) {
+                console.error("自動保存失敗:", error);
+            }
+        }
+
+        window.onload = () => {
+            render();
+            loadData(); 
+        };
+
+        window.addEventListener('beforeunload', () => {
+            saveData();
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                saveData();
+            }
+        });
+
+    </script>
 </body>
 </html>
-
-
