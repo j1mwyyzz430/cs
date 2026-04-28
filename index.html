@@ -132,12 +132,27 @@
             justify-content: flex-end;
             gap: 2px;
             max-width: 40%;
-            pointer-events: none;
+            /* 移除 pointer-events: none，讓超級星星可以被點擊 */
         }
         .big-star-icon {
             color: #ff3b30;
             font-size: 14px;
             filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
+            pointer-events: none; /* 普通大星星不可點擊 */
+        }
+        
+        /* 超級星星樣式 */
+        .super-star-icon {
+            font-size: 16px;
+            cursor: pointer;
+            pointer-events: auto; /* 允許點擊 */
+            animation: superStarPulse 1.5s infinite;
+            z-index: 10;
+        }
+        @keyframes superStarPulse {
+            0% { transform: scale(1); filter: hue-rotate(0deg) drop-shadow(0 0 4px rgba(255,215,0,0.8)); }
+            50% { transform: scale(1.25); filter: hue-rotate(180deg) drop-shadow(0 0 8px rgba(255,215,0,1)); }
+            100% { transform: scale(1); filter: hue-rotate(360deg) drop-shadow(0 0 4px rgba(255,215,0,0.8)); }
         }
 
         .card-bottom {
@@ -162,7 +177,6 @@
         .star.filled {
             fill: var(--star-color);
         }
-        /* 將動畫獨立出來，只加在剛獲得的星星上 */
         .star.pop-anim {
             animation: pop 0.3s ease-out;
         }
@@ -202,6 +216,12 @@
             height: 10px;
             background-color: #f00;
             opacity: 0;
+        }
+        .super-confetti {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
         }
         
         /* 載入提示 */
@@ -243,7 +263,6 @@
     <script>
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwJS1GnUF4LzybNeWKNy7o0d94m7UuRO_9V4zPDINV6S3aQTSu87vY2k8CI_IYhswUOBQ/exec"; 
         
-        // 新增安全鎖：確保資料載入完成前，絕對不會觸發存檔覆蓋資料
         let isDataLoaded = false;
 
         const studentsData = [
@@ -258,11 +277,13 @@
             "25 YUNG AGGER 翁柏翹"
         ];
 
+        // 新增 superStars 屬性
         let students = studentsData.map((name, index) => ({
             id: index + 1,
             name: name,
             smallStars: 0,
-            bigStars: 0
+            bigStars: 0,
+            superStars: 0 
         }));
 
         const groups = {
@@ -298,6 +319,14 @@
                 time += 150;
             });
         }
+        // 超級星星專屬音效
+        function playSuperWinSound() {
+            let time = 0;
+            [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach(freq => {
+                setTimeout(() => playTone(freq, 'square', 0.4, 0.08), time);
+                time += 100;
+            });
+        }
 
         function render(changedIndices = []) {
             const grid = document.getElementById('grid');
@@ -308,6 +337,11 @@
                 card.className = 'student-card';
                 card.onclick = (e) => {
                     if(e.target.closest('.btn-minus')) return;
+                    // 如果點擊的是超級星星，觸發兌換功能並阻止加分
+                    if(e.target.closest('.super-star-icon')) {
+                        consumeSuperStar(index);
+                        return;
+                    }
                     addPoint(index);
                 };
 
@@ -321,6 +355,11 @@
                 }
 
                 let bigStarsHTML = '';
+                // 優先渲染超級星星
+                for(let i=0; i<(student.superStars || 0); i++) {
+                    bigStarsHTML += `<span class="super-star-icon" title="點擊兌換禮物">🌟</span>`;
+                }
+                // 再渲染普通大星星
                 for(let i=0; i<student.bigStars; i++) {
                     bigStarsHTML += `<span class="big-star-icon">⭐</span>`;
                 }
@@ -341,6 +380,26 @@
             });
         }
 
+        // 處理星星升級邏輯 (小星滿10 -> 大星, 大星滿3 -> 超級星)
+        function processStarPromotion(student) {
+            student.smallStars = 0;
+            student.bigStars++;
+            let gotSuper = false;
+            
+            if (student.bigStars >= 3) {
+                student.bigStars = 0;
+                student.superStars = (student.superStars || 0) + 1;
+                gotSuper = true;
+            }
+            
+            render();
+            
+            if (gotSuper) {
+                playSuperWinSound();
+                fireSuperConfetti();
+            }
+        }
+
         function addPoint(index) {
             if(students[index].smallStars < 10) {
                 students[index].smallStars++;
@@ -349,9 +408,7 @@
                     fireConfetti();
                     render([index]); 
                     setTimeout(() => {
-                        students[index].smallStars = 0;
-                        students[index].bigStars++;
-                        render(); 
+                        processStarPromotion(students[index]);
                     }, 1000);
                 } else {
                     playAddSound();
@@ -365,6 +422,22 @@
                 students[index].smallStars--;
                 playSubSound();
                 render(); 
+            } else if (students[index].bigStars > 0) {
+                // 當小星星為0，但有大星星時，消耗1顆大星星並退回9顆小星星
+                students[index].bigStars--;
+                students[index].smallStars = 9;
+                playSubSound();
+                render();
+            }
+        }
+
+        // 消耗超級星星兌換禮物
+        function consumeSuperStar(index) {
+            if (students[index].superStars > 0) {
+                if(confirm(`確定要消耗 ${students[index].name} 的 1 顆彩色大星星來兌換禮物嗎？`)) {
+                    students[index].superStars--;
+                    render();
+                }
             }
         }
 
@@ -380,9 +453,7 @@
                     if(s.smallStars === 10) {
                         hasWin = true;
                         setTimeout(() => {
-                            s.smallStars = 0;
-                            s.bigStars++;
-                            render();
+                            processStarPromotion(s);
                         }, 1000);
                     }
                 }
@@ -410,9 +481,7 @@
                     if(s.smallStars === 10) {
                         hasWin = true;
                         setTimeout(() => {
-                            s.smallStars = 0;
-                            s.bigStars++;
-                            render();
+                            processStarPromotion(s);
                         }, 1000);
                     }
                 }
@@ -428,7 +497,13 @@
         function subAll() {
             playSubSound();
             students.forEach(s => {
-                if(s.smallStars > 0) s.smallStars--;
+                if(s.smallStars > 0) {
+                    s.smallStars--;
+                } else if (s.bigStars > 0) {
+                    // 全班扣分時也支援大星星退回機制
+                    s.bigStars--;
+                    s.smallStars = 9;
+                }
             });
             render(); 
         }
@@ -454,20 +529,37 @@
             }
         }
 
+        // 超級星星專屬華麗彩帶特效
+        function fireSuperConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
+            for(let i=0; i<150; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti super-confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(confetti);
+
+                const duration = Math.random() * 2.5 + 1.5;
+                confetti.animate([
+                    { transform: `translate3d(0, -10vh, 0) rotate(0deg) scale(1)`, opacity: 1 },
+                    { transform: `translate3d(${Math.random()*400 - 200}px, 100vh, 0) rotate(${Math.random()*1080}deg) scale(1.5)`, opacity: 0 }
+                ], {
+                    duration: duration * 1000,
+                    easing: 'cubic-bezier(.25,.8,.25,1)'
+                }).onfinish = () => confetti.remove();
+            }
+        }
+
         function showToast(msg) {
             const toast = document.getElementById('toast');
             toast.innerText = msg;
             toast.style.display = 'block';
             setTimeout(() => toast.style.display = 'none', 2000);
         }
-
-        // ==========================================
-        // 背景自動讀取與保存機制
-        // ==========================================
         
         async function loadData() {
             try {
-                // 顯示載入中
                 const toast = document.getElementById('toast');
                 toast.innerText = "資料載入中...";
                 toast.style.display = 'block';
@@ -481,25 +573,23 @@
                         if (student) {
                             student.smallStars = parseInt(d.smallStars) || 0;
                             student.bigStars = parseInt(d.bigStars) || 0;
+                            student.superStars = parseInt(d.superStars) || 0; // 讀取超級星星
                         }
                     });
                     render(); 
-                    isDataLoaded = true; // 標記為已成功載入
+                    isDataLoaded = true; 
                     showToast("資料已自動同步！");
                 } else {
-                    // 如果 Sheet 是空的，也視為載入完成，允許後續存檔
                     isDataLoaded = true;
                     showToast("已連接，目前無歷史紀錄");
                 }
             } catch (error) {
                 console.error("自動讀取失敗:", error);
                 showToast("連線異常，目前為單機模式");
-                // 發生錯誤時不設定 isDataLoaded = true，以防意外覆蓋雲端資料
             }
         }
 
         async function saveData() {
-            // 如果資料還沒從 Google Sheet 載入完成，絕對不可以存檔，以免覆蓋成 0
             if (!isDataLoaded) {
                 console.log("資料尚未載入完成，取消本次存檔以保護雲端資料。");
                 return;
