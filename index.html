@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2F 班級獎勵系統</title>
+    <title>非華語班級獎勵系統</title>
     <style>
         :root {
             --bg-color: #f0f4f8;
@@ -22,13 +22,13 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'PingFang HK', 'Microsoft JhengHei', sans-serif;
             background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
             height: 100vh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
-            padding: 10px;
+            padding: 15px;
         }
 
         /* 頂部控制列 */
@@ -36,164 +36,187 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 60px;
-            gap: 12px;
-            margin-bottom: 10px;
+            height: 70px;
+            gap: 15px;
+            margin-bottom: 15px;
         }
 
         .header-title {
-            font-size: 24px;
+            font-size: 32px;
             font-weight: bold;
             color: white;
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-            margin-right: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            margin-right: 20px;
         }
 
         .global-btn {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border: none;
             border-radius: 50%;
-            width: 45px;
-            height: 45px;
+            width: 55px;
+            height: 55px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
             transition: transform 0.1s, background 0.2s;
             display: flex;
             justify-content: center;
             align-items: center;
         }
         .global-btn:active { transform: scale(0.9); }
-        .global-btn svg { width: 24px; height: 24px; }
+        .global-btn svg { width: 32px; height: 32px; }
         .btn-add-all svg { fill: #48bb78; }
         .btn-sub-all svg { fill: #f56565; }
 
         /* 小組加分按鈕樣式 */
         .group-btn {
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.95);
             border: none;
-            border-radius: 20px;
-            padding: 0 16px;
-            height: 40px;
-            font-size: 15px;
+            border-radius: 25px;
+            padding: 0 24px;
+            height: 50px;
+            font-size: 20px;
             font-weight: bold;
             color: #4a5568;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
             transition: transform 0.1s, background 0.2s, color 0.2s;
         }
         .group-btn:active { transform: scale(0.95); }
         .group-btn:hover { background: #ffffff; color: #2b6cb0; }
 
-        /* 學生網格 5x5 */
+        /* 學生網格 2x2 (適合4人小班) */
         .grid-container {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            grid-template-rows: repeat(5, 1fr);
-            gap: 10px;
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+            gap: 25px;
             flex: 1;
             min-height: 0;
+            padding: 0 20px 20px 20px;
         }
 
         .student-card {
             background: var(--card-bg);
-            border-radius: 12px;
-            padding: 8px 12px;
+            border-radius: 24px;
+            padding: 25px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
             cursor: pointer;
             transition: transform 0.1s, box-shadow 0.2s;
             position: relative;
         }
         .student-card:hover {
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            transform: translateY(-4px);
         }
         .student-card:active { transform: scale(0.98); }
 
         .card-header {
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
+            align-items: center;
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            pointer-events: none;
+        }
+
+        .avatar {
+            font-size: 45px;
+            background: #f0f4f8;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
 
         .student-name {
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 32px;
+            font-weight: 700;
             color: var(--text-main);
-            line-height: 1.2;
-            pointer-events: none;
+            letter-spacing: 2px;
         }
 
         .big-stars {
             display: flex;
             flex-wrap: wrap;
             justify-content: flex-end;
-            gap: 2px;
-            max-width: 40%;
-            /* 移除 pointer-events: none，讓超級星星可以被點擊 */
+            gap: 5px;
+            max-width: 50%;
         }
         .big-star-icon {
             color: #ff3b30;
-            font-size: 14px;
-            filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));
-            pointer-events: none; /* 普通大星星不可點擊 */
+            font-size: 28px;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+            pointer-events: none; 
         }
         
         /* 超級星星樣式 */
         .super-star-icon {
-            font-size: 16px;
+            font-size: 32px;
             cursor: pointer;
-            pointer-events: auto; /* 允許點擊 */
+            pointer-events: auto; 
             animation: superStarPulse 1.5s infinite;
             z-index: 10;
         }
         @keyframes superStarPulse {
-            0% { transform: scale(1); filter: hue-rotate(0deg) drop-shadow(0 0 4px rgba(255,215,0,0.8)); }
-            50% { transform: scale(1.25); filter: hue-rotate(180deg) drop-shadow(0 0 8px rgba(255,215,0,1)); }
-            100% { transform: scale(1); filter: hue-rotate(360deg) drop-shadow(0 0 4px rgba(255,215,0,0.8)); }
+            0% { transform: scale(1); filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(255,215,0,0.8)); }
+            50% { transform: scale(1.25); filter: hue-rotate(180deg) drop-shadow(0 0 12px rgba(255,215,0,1)); }
+            100% { transform: scale(1); filter: hue-rotate(360deg) drop-shadow(0 0 6px rgba(255,215,0,0.8)); }
         }
 
         .card-bottom {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 5px;
+            margin-top: 15px;
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 16px;
         }
 
         .small-stars {
             display: flex;
-            gap: 2px;
+            gap: 8px;
             pointer-events: none;
         }
         
         .star {
-            width: 14px;
-            height: 14px;
+            width: 28px;
+            height: 28px;
             fill: var(--star-empty);
             transition: fill 0.2s;
         }
         .star.filled {
             fill: var(--star-color);
+            filter: drop-shadow(0 1px 2px rgba(251, 191, 36, 0.4));
         }
         .star.pop-anim {
             animation: pop 0.3s ease-out;
         }
 
         .btn-minus {
-            background: none;
-            border: none;
+            background: #fff;
+            border: 2px solid #e2e8f0;
             cursor: pointer;
-            padding: 4px;
+            padding: 8px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 10;
+            transition: all 0.2s;
         }
-        .btn-minus:hover { background: var(--btn-hover); }
-        .btn-minus svg { width: 16px; height: 16px; fill: #a0aec0; }
+        .btn-minus:hover { background: #fee2e2; border-color: #fca5a5; }
+        .btn-minus svg { width: 24px; height: 24px; fill: #ef4444; }
 
         @keyframes pop {
             0% { transform: scale(1); }
@@ -212,43 +235,45 @@
         }
         .confetti {
             position: absolute;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             background-color: #f00;
             opacity: 0;
         }
         .super-confetti {
-            width: 15px;
-            height: 15px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
-            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+            box-shadow: 0 0 10px rgba(255,255,255,0.9);
         }
         
         /* 載入提示 */
         #toast {
             position: fixed;
-            bottom: 20px;
+            bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 18px;
             display: none;
             z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="header-title">2F 班級獎勵表</div>
+        <div class="header-title">🌟 學習獎勵表</div>
         
-        <button class="group-btn" onclick="addGroup(1)" title="第一組加分">第一二行</button>
-        <button class="group-btn" onclick="addGroup(2)" title="第二組加分">第三四行</button>
-        <button class="group-btn" onclick="addGroup(3)" title="第三組加分">第五六行</button>
+        <button class="group-btn" onclick="addGroup(1)" title="第一組加分">第一組</button>
+        <button class="group-btn" onclick="addGroup(2)" title="第二組加分">第二組</button>
 
-        <div style="width: 5px;"></div><button class="global-btn btn-add-all" onclick="addAll()" title="全班加分">
+        <div style="width: 10px;"></div>
+        <button class="global-btn btn-add-all" onclick="addAll()" title="全班加分">
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
         </button>
         <button class="global-btn btn-sub-all" onclick="subAll()" title="全班扣分">
@@ -265,31 +290,27 @@
         
         let isDataLoaded = false;
 
+        // 替換為4位非華語學生，並加上可愛的 Emoji 頭像
         const studentsData = [
-            "1 CHAN HEI YU 陳羲諭", "2 CHAN LUT YIN 陳律言", "3 CHAN PAK HEI LOUIS 陳柏希",
-            "4 CHAU HO YIN 周澔賢", "5 CHENG WAN CHUN 鄭允臻", "6 CHENG WING HIM JAMIE 鄭穎謙",
-            "7 CHEUNG KA WAI HARRIS 張珈維", "8 CHOI MAN LOK 蔡汶諾", "9 FU KA KUEN 傅嘉權",
-            "10 LAI CHUN KIU CRATON 黎振喬", "11 LEUNG LOK YU 梁樂瑜", "12 LI REN 李仁",
-            "13 LI SUM YIN 李芯弦", "14 NG ARIANA TSZ KAU 伍芷逑", "15 PANG SZE POK 彭詩博",
-            "16 POON SZE YAT SURI 潘思佾", "17 SO CHING YAN 蘇靖恩", "18 TSE TSZ WUN 謝子媛",
-            "19 TSUI YI SHUN 徐苡淳", "20 WANG KAIXUAN 王鍇軒", "21 WONG YEE KI 黃依祈",
-            "22 WRIGHT ETHAN DAVID 韋信", "23 WRIGHT NATHAN CHRISTOPHER 韋諾", "24 WU TSZ YING BELLA 伍祉凝",
-            "25 YUNG AGGER 翁柏翹"
+            { name: "湯雅智", emoji: "👧🏻" },
+            { name: "詹美珠", emoji: "👧🏽" },
+            { name: "平野孝多", emoji: "👦🏻" },
+            { name: "陳詠思", emoji: "👧🏼" }
         ];
 
-        // 新增 superStars 屬性
-        let students = studentsData.map((name, index) => ({
+        let students = studentsData.map((data, index) => ({
             id: index + 1,
-            name: name,
+            name: data.name,
+            emoji: data.emoji,
             smallStars: 0,
             bigStars: 0,
             superStars: 0 
         }));
 
+        // 重新分配小組 (4人分2組)
         const groups = {
-            1: [0, 2, 8, 10, 16, 18, 23],  
-            2: [1, 3, 5, 6, 7, 11, 14, 15, 17, 20], 
-            3: [4, 9, 12, 13, 19, 21, 22, 24]  
+            1: [0, 1], // 第一組：湯雅智、詹美珠
+            2: [2, 3]  // 第二組：平野孝多、陳詠思
         };
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -319,7 +340,6 @@
                 time += 150;
             });
         }
-        // 超級星星專屬音效
         function playSuperWinSound() {
             let time = 0;
             [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach(freq => {
@@ -337,7 +357,6 @@
                 card.className = 'student-card';
                 card.onclick = (e) => {
                     if(e.target.closest('.btn-minus')) return;
-                    // 如果點擊的是超級星星，觸發兌換功能並阻止加分
                     if(e.target.closest('.super-star-icon')) {
                         consumeSuperStar(index);
                         return;
@@ -355,18 +374,19 @@
                 }
 
                 let bigStarsHTML = '';
-                // 優先渲染超級星星
                 for(let i=0; i<(student.superStars || 0); i++) {
                     bigStarsHTML += `<span class="super-star-icon" title="點擊兌換禮物">🌟</span>`;
                 }
-                // 再渲染普通大星星
                 for(let i=0; i<student.bigStars; i++) {
                     bigStarsHTML += `<span class="big-star-icon">⭐</span>`;
                 }
 
                 card.innerHTML = `
                     <div class="card-header">
-                        <div class="student-name">${student.name}</div>
+                        <div class="student-info">
+                            <div class="avatar">${student.emoji}</div>
+                            <div class="student-name">${student.name}</div>
+                        </div>
                         <div class="big-stars">${bigStarsHTML}</div>
                     </div>
                     <div class="card-bottom">
@@ -380,7 +400,6 @@
             });
         }
 
-        // 處理星星升級邏輯 (小星滿10 -> 大星, 大星滿3 -> 超級星)
         function processStarPromotion(student) {
             student.smallStars = 0;
             student.bigStars++;
@@ -423,7 +442,6 @@
                 playSubSound();
                 render(); 
             } else if (students[index].bigStars > 0) {
-                // 當小星星為0，但有大星星時，消耗1顆大星星並退回9顆小星星
                 students[index].bigStars--;
                 students[index].smallStars = 9;
                 playSubSound();
@@ -431,7 +449,6 @@
             }
         }
 
-        // 消耗超級星星兌換禮物
         function consumeSuperStar(index) {
             if (students[index].superStars > 0) {
                 if(confirm(`確定要消耗 ${students[index].name} 的 1 顆彩色大星星來兌換禮物嗎？`)) {
@@ -500,7 +517,6 @@
                 if(s.smallStars > 0) {
                     s.smallStars--;
                 } else if (s.bigStars > 0) {
-                    // 全班扣分時也支援大星星退回機制
                     s.bigStars--;
                     s.smallStars = 9;
                 }
@@ -529,7 +545,6 @@
             }
         }
 
-        // 超級星星專屬華麗彩帶特效
         function fireSuperConfetti() {
             const container = document.getElementById('confetti-container');
             const colors = ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'];
@@ -573,7 +588,7 @@
                         if (student) {
                             student.smallStars = parseInt(d.smallStars) || 0;
                             student.bigStars = parseInt(d.bigStars) || 0;
-                            student.superStars = parseInt(d.superStars) || 0; // 讀取超級星星
+                            student.superStars = parseInt(d.superStars) || 0; 
                         }
                     });
                     render(); 
